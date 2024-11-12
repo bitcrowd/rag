@@ -1,4 +1,5 @@
 defmodule Rag.Embedding.Bumblebee do
+  @spec generate_embedding(map(), Nx.Serving.t(), atom(), atom()) :: map()
   def generate_embedding(input, serving \\ Rag.EmbeddingServing, source_key, target_key) do
     text = input[source_key]
 
@@ -7,6 +8,7 @@ defmodule Rag.Embedding.Bumblebee do
     Map.put(input, target_key, embedding)
   end
 
+  @spec generate_embedding(list(map()), Nx.Serving.t(), atom(), atom()) :: list(map())
   def generate_embeddings_batch(inputs, serving \\ Rag.EmbeddingServing, source_key, target_key) do
     texts = Enum.map(inputs, &Map.fetch!(&1, source_key))
 

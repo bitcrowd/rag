@@ -2,6 +2,13 @@ defmodule Rag.Generation.LangChain do
   alias LangChain.Chains.LLMChain
   alias LangChain.Message
 
+  @spec generate_response(
+          %{
+            query: binary(),
+            query_results: %{document: binary(), source: binary()}
+          },
+          LLMChain.t()
+        ) :: %{context: binary(), context_sources: list(binary()), response: binary()}
   def generate_response(%{query: query, query_results: query_results} = input, chain) do
     {context, context_sources} =
       query_results |> Enum.map(&{&1.document, &1.source}) |> Enum.unzip()

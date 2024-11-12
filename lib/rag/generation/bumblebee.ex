@@ -1,4 +1,11 @@
 defmodule Rag.Generation.Bumblebee do
+  @spec generate_response(
+          %{
+            query: binary(),
+            query_results: %{document: binary(), source: binary()}
+          },
+          Nx.Serving.t()
+        ) :: %{context: binary(), context_sources: list(binary()), response: binary()}
   def generate_response(
         %{query: query, query_results: query_results} = input,
         serving \\ Rag.LLMServing

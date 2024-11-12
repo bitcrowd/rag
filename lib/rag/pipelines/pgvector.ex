@@ -20,6 +20,9 @@ defmodule Rag.Pipelines.Pgvector do
     repo.insert_all(Rag.Pipelines.Pgvector.Chunk, inputs)
   end
 
+  @spec query(%{query_embedding: Nx.Tensor.t()}, Ecto.Repo.t(), integer()) :: %{
+          query_results: list(%{document: binary(), source: binary()})
+        }
   def query(%{query_embedding: query_embedding} = input, repo, limit) do
     results =
       repo.all(

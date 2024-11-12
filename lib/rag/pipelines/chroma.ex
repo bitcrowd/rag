@@ -11,6 +11,9 @@ defmodule Rag.Pipelines.Chroma do
     Chroma.Collection.add(collection, batch)
   end
 
+  @spec query(%{query_embedding: Nx.Tensor.t()}, Ecto.Repo.t(), integer()) :: %{
+          query_results: list(%{document: binary(), source: binary()})
+        }
   def query(%{query_embedding: query_embedding} = input, collection, limit) do
     {:ok, results} =
       Chroma.Collection.query(collection,
