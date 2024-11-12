@@ -1,0 +1,32 @@
+defmodule Rag.Generation.LangChain do
+  alias LangChain.Chains.LLMChain
+  alias LangChain.Message
+
+  def generate_response(%{query: query, query_results: query_results} = input, chain) do
+    {context, context_sources} =
+      query_results |> Enum.map(&{&1.document, &1.source}) |> Enum.unzip()
+
+    context = Enum.join(context, "\n\n")
+
+    prompt =
+      """
+      Context information is below.
+      ---------------------
+      #{context}
+      ---------------------
+      Given the context information and not prior knowledge, answer the query.
+      Query: #{query}
+      Answer:
+      """
+
+    {:ok, _updated_chain, response} =
+      chain
+      |> LLMChain.add_message(Message.new_user!(prompt))
+      |> LLMChain.run()
+
+    input
+    |> Map.put(:context, context)
+    |> Map.put(:context_sources, context_sources)
+    |> Map.put(:response, response.content)
+  end
+end
