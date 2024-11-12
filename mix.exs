@@ -22,6 +22,7 @@ defmodule Rag.MixProject do
       {:ecto, "~> 3.12"},
       {:ecto_sql, "~> 3.12"},
       {:ecto_sqlite3, ">= 0.0.0"},
+      {:pgvector, "~> 0.3.0"},
       {:chroma, "~> 0.1.3"},
       {:sqlite_vec, github: "joelpaulkoch/sqlite_vec"},
       {:bumblebee, github: "joelpaulkoch/bumblebee", branch: "jina-embeddings-v2-base-code"},

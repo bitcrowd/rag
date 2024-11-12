@@ -18,6 +18,21 @@ defmodule Rag.Pipelines do
     |> Rag.Generation.Bumblebee.generate_response()
   end
 
+  def ingest_bumblebee_text_embeddings_pgvector(inputs, repo) do
+    inputs
+    |> Enum.map(&Rag.Loading.load_file(&1))
+    |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
+    |> Rag.Embedding.Bumblebee.generate_embeddings_batch(:chunk, :embedding)
+    |> Rag.Pipelines.Pgvector.insert_all(repo)
+  end
+
+  def query_bumblebee_text_embeddings_pgvector(query, repo) do
+    %{query: query}
+    |> Rag.Embedding.Bumblebee.generate_embedding(:query, :query_embedding)
+    |> Rag.Pipelines.Pgvector.query(repo, 3)
+    |> Rag.Generation.Bumblebee.generate_response()
+  end
+
   def ingest_bumblebee_text_embeddings_chroma(inputs, collection) do
     inputs
     |> Enum.map(&Rag.Loading.load_file(&1))
