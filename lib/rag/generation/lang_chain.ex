@@ -21,7 +21,7 @@ defmodule Rag.Generation.LangChain do
       ---------------------
       #{context}
       ---------------------
-      Given the context information and not prior knowledge, answer the query.
+      Given the context information and no prior knowledge, answer the query.
       Query: #{query}
       Answer:
       """
