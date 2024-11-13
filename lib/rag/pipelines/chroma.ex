@@ -1,51 +1,35 @@
 defmodule Rag.Pipelines.Chroma do
-  def insert(input, collection) do
-    batch = to_chroma_batch([input])
-
-    Chroma.Collection.add(collection, batch)
+  @moduledoc """
+  This module contains RAG pipelines with chroma as vector store.
+  """
+  def ingest_with_bumblebee_text_embeddings(inputs, collection) do
+    inputs
+    |> Enum.map(&Rag.Loading.load_file(&1))
+    |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
+    |> Rag.Embedding.Bumblebee.generate_embeddings_batch(:chunk, :embedding)
+    |> Rag.Pipelines.Chroma.VectorStore.insert_all(collection)
   end
 
-  def insert_all(inputs, collection) do
-    batch = to_chroma_batch(inputs)
-
-    Chroma.Collection.add(collection, batch)
+  def query_with_bumblebee_text_embeddings(query, collection) do
+    %{query: query}
+    |> Rag.Embedding.Bumblebee.generate_embedding(:query, :query_embedding)
+    |> Rag.Pipelines.Chroma.VectorStore.query(collection, 3)
+    |> Rag.Generation.Bumblebee.generate_response()
   end
 
-  @type embedding :: list(number())
-  @spec query(%{query_embedding: embedding()}, Ecto.Repo.t(), integer()) :: %{
-          query_results: list(%{document: binary(), source: binary()})
-        }
-  def query(%{query_embedding: query_embedding} = input, collection, limit) do
-    {:ok, results} =
-      Chroma.Collection.query(collection,
-        results: limit,
-        query_embeddings: [query_embedding]
-      )
+  def query_openai_with_bumblebee_text_embeddings(query, collection) do
+    llm =
+      LangChain.ChatModels.ChatOpenAI.new!(%{
+        model: "gpt-4o-mini",
+        api_key: System.fetch_env!("OPENAI_API_KEY"),
+        stream: false
+      })
 
-    {documents, sources} = {results["documents"], results["ids"]}
+    chain = LangChain.Chains.LLMChain.new!(%{llm: llm})
 
-    results =
-      Enum.zip(documents, sources)
-      |> Enum.map(fn {document, source} -> %{document: document, source: source} end)
-
-    Map.put(input, :query_results, results)
-  end
-
-  def get_or_create(name), do: Chroma.Collection.get_or_create(name, %{"hnsw:space" => "cosine"})
-  def delete(collection), do: Chroma.Collection.delete(collection)
-
-  defp to_chroma_batch(inputs) do
-    for %{document: document, source: source, chunk: chunk, embedding: embedding} <- inputs,
-        reduce: %{documents: [], ids: [], sources: [], chunks: [], embeddings: []} do
-      %{documents: documents, sources: sources, chunks: chunks, embeddings: embeddings} ->
-        %{
-          documents: [document | documents],
-          sources: [source | sources],
-          ids: [source | sources],
-          chunks: [chunk | chunks],
-          embeddings: [embedding | embeddings]
-        }
-    end
-    |> Map.drop([:sources, :chunks])
+    %{query: query}
+    |> Rag.Embedding.Bumblebee.generate_embedding(:query, :query_embedding)
+    |> Rag.Pipelines.Chroma.VectorStore.query(collection, 3)
+    |> Rag.Generation.LangChain.generate_response(chain)
   end
 end
