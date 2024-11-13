@@ -31,7 +31,7 @@ defmodule Rag.Pipelines.Chroma.VectorStore do
     Map.put(input, :query_results, results)
   end
 
-  def get_or_create(name), do: Chroma.Collection.get_or_create(name, %{"hnsw:space" => "cosine"})
+  def get_or_create(name, opts \\ %{}), do: Chroma.Collection.get_or_create(name, opts)
   def delete(collection), do: Chroma.Collection.delete(collection)
 
   defp to_chroma_batch(inputs) do
