@@ -10,14 +10,18 @@ defmodule Rag.Pipelines.Chroma do
     |> Rag.Pipelines.Chroma.VectorStore.insert_all(collection)
   end
 
-  def query_with_bumblebee_text_embeddings(query, collection) do
+  def query_with_bumblebee_text_embeddings(query, collection, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 3)
+
     %{query: query}
     |> Rag.Embedding.Bumblebee.generate_embedding(:query, :query_embedding)
-    |> Rag.Pipelines.Chroma.VectorStore.query(collection, 3)
+    |> Rag.Pipelines.Chroma.VectorStore.query(collection, limit)
     |> Rag.Generation.Bumblebee.generate_response()
   end
 
-  def query_openai_with_bumblebee_text_embeddings(query, collection) do
+  def query_openai_with_bumblebee_text_embeddings(query, collection, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 3)
+
     llm =
       LangChain.ChatModels.ChatOpenAI.new!(%{
         model: "gpt-4o-mini",
@@ -29,7 +33,7 @@ defmodule Rag.Pipelines.Chroma do
 
     %{query: query}
     |> Rag.Embedding.Bumblebee.generate_embedding(:query, :query_embedding)
-    |> Rag.Pipelines.Chroma.VectorStore.query(collection, 3)
+    |> Rag.Pipelines.Chroma.VectorStore.query(collection, limit)
     |> Rag.Generation.LangChain.generate_response(chain)
   end
 end

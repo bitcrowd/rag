@@ -11,10 +11,12 @@ defmodule Rag.Pipelines.Pgvector do
     |> Rag.Pipelines.Pgvector.VectorStore.insert_all(repo)
   end
 
-  def query_with_bumblebee_text_embeddings(query, repo) do
+  def query_with_bumblebee_text_embeddings(query, repo, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 3)
+
     %{query: query}
     |> Rag.Embedding.Bumblebee.generate_embedding(:query, :query_embedding)
-    |> Rag.Pipelines.Pgvector.VectorStore.query(repo, 3)
+    |> Rag.Pipelines.Pgvector.VectorStore.query(repo, limit)
     |> Rag.Generation.Bumblebee.generate_response()
   end
 end
