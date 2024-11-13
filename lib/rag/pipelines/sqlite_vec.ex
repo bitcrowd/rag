@@ -19,7 +19,8 @@ defmodule Rag.Pipelines.SqliteVec do
     repo.insert_all(Rag.Pipelines.SqliteVec.Chunk, inputs)
   end
 
-  @spec query(%{query_embedding: Nx.Tensor.t()}, Ecto.Repo.t(), integer()) :: %{
+  @type embedding :: list(number())
+  @spec query(%{query_embedding: embedding()}, Ecto.Repo.t(), integer()) :: %{
           query_results: list(%{document: binary(), source: binary()})
         }
   def query(%{query_embedding: query_embedding} = input, repo, limit) do

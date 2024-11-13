@@ -11,14 +11,15 @@ defmodule Rag.Pipelines.Chroma do
     Chroma.Collection.add(collection, batch)
   end
 
-  @spec query(%{query_embedding: Nx.Tensor.t()}, Ecto.Repo.t(), integer()) :: %{
+  @type embedding :: list(number())
+  @spec query(%{query_embedding: embedding()}, Ecto.Repo.t(), integer()) :: %{
           query_results: list(%{document: binary(), source: binary()})
         }
   def query(%{query_embedding: query_embedding} = input, collection, limit) do
     {:ok, results} =
       Chroma.Collection.query(collection,
         results: limit,
-        query_embeddings: [Nx.to_list(query_embedding)]
+        query_embeddings: [query_embedding]
       )
 
     {documents, sources} = {results["documents"], results["ids"]}
@@ -42,7 +43,7 @@ defmodule Rag.Pipelines.Chroma do
           sources: [source | sources],
           ids: [source | sources],
           chunks: [chunk | chunks],
-          embeddings: [Nx.to_list(embedding) | embeddings]
+          embeddings: [embedding | embeddings]
         }
     end
     |> Map.drop([:sources, :chunks])
