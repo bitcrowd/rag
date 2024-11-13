@@ -5,7 +5,7 @@ defmodule Rag.Embedding.Bumblebee do
           optional(any) => any
         }
   def generate_embedding(input, serving \\ Rag.EmbeddingServing, source_key, target_key) do
-    text = input[source_key]
+    text = Map.fetch!(input, source_key)
 
     %{embedding: embedding} = Nx.Serving.batched_run(serving, text)
 
