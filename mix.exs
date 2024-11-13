@@ -19,6 +19,7 @@ defmodule Rag.MixProject do
 
   defp deps do
     [
+      {:mimic, "~> 1.10", only: :test},
       {:ecto, "~> 3.12"},
       {:ecto_sql, "~> 3.12"},
       {:ecto_sqlite3, ">= 0.0.0"},
