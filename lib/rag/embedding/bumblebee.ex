@@ -4,24 +4,29 @@ defmodule Rag.Embedding.Bumblebee do
           atom() => embedding(),
           optional(any) => any
         }
-  def generate_embedding(input, serving \\ Rag.EmbeddingServing, source_key, target_key) do
-    text = Map.fetch!(input, source_key)
+  def generate_embedding(rag_state, serving \\ Rag.EmbeddingServing, source_key, target_key) do
+    text = Map.fetch!(rag_state, source_key)
 
     %{embedding: embedding} = Nx.Serving.batched_run(serving, text)
 
-    Map.put(input, target_key, Nx.to_list(embedding))
+    Map.put(rag_state, target_key, Nx.to_list(embedding))
   end
 
   @spec generate_embeddings_batch(list(map()), Nx.Serving.t(), atom(), atom()) ::
           list(%{atom() => embedding(), optional(any) => any})
-  def generate_embeddings_batch(inputs, serving \\ Rag.EmbeddingServing, source_key, target_key) do
-    texts = Enum.map(inputs, &Map.fetch!(&1, source_key))
+  def generate_embeddings_batch(
+        rag_state_list,
+        serving \\ Rag.EmbeddingServing,
+        source_key,
+        target_key
+      ) do
+    texts = Enum.map(rag_state_list, &Map.fetch!(&1, source_key))
 
     embeddings = Nx.Serving.batched_run(serving, texts)
 
-    Enum.zip(inputs, embeddings)
-    |> Enum.map(fn {input, embedding} ->
-      Map.put(input, target_key, Nx.to_list(embedding.embedding))
+    Enum.zip(rag_state_list, embeddings)
+    |> Enum.map(fn {rag_state, embedding} ->
+      Map.put(rag_state, target_key, Nx.to_list(embedding.embedding))
     end)
   end
 end

@@ -3,8 +3,8 @@ defmodule Rag.Pipelines.Pgvector do
   This module contains RAG pipelines with pgvector as vector store.
   """
 
-  def ingest_with_bumblebee_text_embeddings(inputs, repo) do
-    inputs
+  def ingest_with_bumblebee_text_embeddings(rag_state_list, repo) do
+    rag_state_list
     |> Enum.map(&Rag.Loading.load_file(&1))
     |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
     |> Rag.Embedding.Bumblebee.generate_embeddings_batch(:chunk, :embedding)

@@ -2,8 +2,8 @@ defmodule Rag.Pipelines.Chroma do
   @moduledoc """
   This module contains RAG pipelines with chroma as vector store.
   """
-  def ingest_with_bumblebee_text_embeddings(inputs, collection) do
-    inputs
+  def ingest_with_bumblebee_text_embeddings(rag_state_list, collection) do
+    rag_state_list
     |> Enum.map(&Rag.Loading.load_file(&1))
     |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
     |> Rag.Embedding.Bumblebee.generate_embeddings_batch(:chunk, :embedding)

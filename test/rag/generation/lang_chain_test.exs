@@ -51,11 +51,11 @@ defmodule Rag.Generation.LangChainTest do
     end
 
     test "errors if query or query_results not present" do
-      assert_raise FunctionClauseError, fn ->
+      assert_raise MatchError, fn ->
         Generation.LangChain.generate_response(%{query: "hello"}, @chain)
       end
 
-      assert_raise FunctionClauseError, fn ->
+      assert_raise MatchError, fn ->
         Generation.LangChain.generate_response(%{query_results: []}, @chain)
       end
     end

@@ -3,13 +3,12 @@ defmodule Rag.Generation.LangChain do
   alias LangChain.Message
 
   @spec generate_response(
-          %{
-            query: binary(),
-            query_results: %{document: binary(), source: binary()}
-          },
+          %{query: binary(), query_results: %{document: binary(), source: binary()}},
           LLMChain.t()
         ) :: %{context: binary(), context_sources: list(binary()), response: binary()}
-  def generate_response(%{query: query, query_results: query_results} = input, chain) do
+  def generate_response(rag_state, chain) do
+    %{query: query, query_results: query_results} = rag_state
+
     {context, context_sources} =
       query_results |> Enum.map(&{&1.document, &1.source}) |> Enum.unzip()
 
@@ -31,7 +30,7 @@ defmodule Rag.Generation.LangChain do
       |> LLMChain.add_message(Message.new_user!(prompt))
       |> LLMChain.run()
 
-    input
+    rag_state
     |> Map.put(:context, context)
     |> Map.put(:context_sources, context_sources)
     |> Map.put(:response, response.content)

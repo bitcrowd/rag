@@ -42,11 +42,11 @@ defmodule Rag.Generation.BumblebeeTest do
     end
 
     test "errors if query or query_results not present" do
-      assert_raise FunctionClauseError, fn ->
+      assert_raise MatchError, fn ->
         Generation.Bumblebee.generate_response(%{query: "hello"})
       end
 
-      assert_raise FunctionClauseError, fn ->
+      assert_raise MatchError, fn ->
         Generation.Bumblebee.generate_response(%{query_results: []})
       end
     end
