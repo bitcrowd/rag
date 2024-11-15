@@ -1,6 +1,6 @@
 # Rag
 
-**TODO: Add description**
+A library to make building performant RAG systems in Elixir easy.
 
 ## Installation
 
@@ -15,7 +15,10 @@ def deps do
 end
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/rag>.
+Then, run `mix rag.install <vector_store>` to install required dependencies and generate a RAG system that you can further customize to your needs.
+Currently supported options for `<vector_store>`:
+- `pgvector`
+- `chroma`
+- `sqlite_vec`
 
+Brought to you by bitcrowd.

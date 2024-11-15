@@ -1,4 +1,12 @@
 defmodule Rag.Generation.Bumblebee do
+  @moduledoc """
+  Functions to generate responses using `Nx.Serving.batched_run/2`. 
+  """
+
+  @doc """
+  Creates a prompt from `query` and the context extracted from `query_results` and passes it to `serving` to generate a response.
+  Then, puts `context`, `context_sources`, and `response` in `rag_state`.
+  """
   @spec generate_response(
           %{query: binary(), query_results: %{document: binary(), source: binary()}},
           Nx.Serving.t()

@@ -3,11 +3,11 @@ defmodule Mix.Tasks.Rag.Install do
 
   @example "mix rag.install pgvector"
 
-  @shortdoc "A short description of your task"
+  @shortdoc "Installs the rag library"
   @moduledoc """
   #{@shortdoc}
 
-  Longer explanation of your task
+  Installs required dependencies and generates code to set you up to get started with your selected vector store.
 
   ## Example
 
@@ -17,7 +17,6 @@ defmodule Mix.Tasks.Rag.Install do
 
   ## Options
 
-  * `--example-option` or `-e` - Docs for your option
   """
 
   @impl Igniter.Mix.Task
