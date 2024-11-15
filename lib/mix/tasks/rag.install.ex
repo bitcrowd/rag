@@ -351,7 +351,7 @@ defmodule Mix.Tasks.Rag.Install do
         """)}}
     )
     |> Igniter.Project.Application.add_new_child(
-      {Nx.Serving_remove_this_suffix,
+      {Nx.Serving,
        {:code,
         Sourceror.parse_string!("""
         [
@@ -359,7 +359,8 @@ defmodule Mix.Tasks.Rag.Install do
           name: Rag.LLMServing,
           batch_timeout: 100
         ]
-        """)}}
+        """)}},
+      force?: true
     )
   end
 
