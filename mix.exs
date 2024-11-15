@@ -28,6 +28,7 @@ defmodule Rag.MixProject do
 
   defp deps do
     [
+      {:req, "~> 0.5.0"},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:igniter, "~> 0.1"},
