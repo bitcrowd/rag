@@ -62,6 +62,7 @@ defmodule Mix.Tasks.Rag.Install do
       |> Igniter.Project.Deps.add_dep({:langchain, "~> 0.3.0-rc.0"})
       |> Igniter.Project.Deps.add_dep({:text_chunker, "~> 0.3.1"})
       |> Igniter.Project.Deps.add_dep({:nx, "~> 0.9.0"})
+      |> Igniter.Project.Config.configure("config.exs", :nx, [:default_backend], EXLA.Backend)
       |> Igniter.Project.Deps.add_dep({:exla, "~> 0.9.1"})
       |> Igniter.Project.Deps.add_dep({:axon, "~> 0.7.0"})
 
