@@ -11,9 +11,9 @@ defmodule Rag.Generation.LangChain do
   Then, puts `context`, `context_sources`, and `response` in `rag_state`.
   """
   @spec generate_response(
-          %{query: binary(), query_results: %{document: binary(), source: binary()}},
+          %{query: String.t(), query_results: %{document: String.t(), source: String.t()}},
           LLMChain.t()
-        ) :: %{context: binary(), context_sources: list(binary()), response: binary()}
+        ) :: %{context: String.t(), context_sources: list(String.t()), response: String.t()}
   def generate_response(rag_state, chain) do
     %{query: query, query_results: query_results} = rag_state
 
