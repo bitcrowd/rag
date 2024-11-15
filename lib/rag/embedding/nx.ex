@@ -1,4 +1,4 @@
-defmodule Rag.Embedding.Bumblebee do
+defmodule Rag.Embedding.Nx do
   @moduledoc """
   Functions to generate embeddings using `Nx.Serving.batched_run/2`. 
   """

@@ -1,4 +1,4 @@
-defmodule Rag.Generation.Bumblebee do
+defmodule Rag.Generation.Nx do
   @moduledoc """
   Functions to generate responses using `Nx.Serving.batched_run/2`. 
   """

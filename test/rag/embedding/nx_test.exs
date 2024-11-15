@@ -1,4 +1,4 @@
-defmodule Rag.Embedding.BumblebeeTest do
+defmodule Rag.Embedding.NxTest do
   use ExUnit.Case
   use Mimic
 
@@ -12,7 +12,7 @@ defmodule Rag.Embedding.BumblebeeTest do
 
       rag_state = %{text: "hello"}
 
-      assert Embedding.Bumblebee.generate_embedding(rag_state, :text, :output) == %{
+      assert Embedding.Nx.generate_embedding(rag_state, :text, :output) == %{
                text: "hello",
                output: [1, 2, 3]
              }
@@ -22,7 +22,7 @@ defmodule Rag.Embedding.BumblebeeTest do
       rag_state = %{text: "hello"}
 
       assert_raise KeyError, fn ->
-        Embedding.Bumblebee.generate_embedding(rag_state, :non_existing_key, :output)
+        Embedding.Nx.generate_embedding(rag_state, :non_existing_key, :output)
       end
     end
 
@@ -31,7 +31,7 @@ defmodule Rag.Embedding.BumblebeeTest do
 
       assert {:noproc, _} =
                catch_exit(
-                 Embedding.Bumblebee.generate_embedding(
+                 Embedding.Nx.generate_embedding(
                    rag_state,
                    NonExisting.Serving,
                    :text,
@@ -50,14 +50,14 @@ defmodule Rag.Embedding.BumblebeeTest do
       rag_state_list = [%{text: "hello"}, %{text: "hello again"}]
 
       assert [%{text: "hello", output: [1, 2, 3]}, %{text: "hello again", output: [4, 5, 6]}] ==
-               Embedding.Bumblebee.generate_embeddings_batch(rag_state_list, :text, :output)
+               Embedding.Nx.generate_embeddings_batch(rag_state_list, :text, :output)
     end
 
     test "errors if source_key is not in rag_state" do
       rag_state_list = [%{text: "hello"}]
 
       assert_raise KeyError, fn ->
-        Embedding.Bumblebee.generate_embeddings_batch(rag_state_list, :non_existing_key, :output)
+        Embedding.Nx.generate_embeddings_batch(rag_state_list, :non_existing_key, :output)
       end
     end
 
@@ -66,7 +66,7 @@ defmodule Rag.Embedding.BumblebeeTest do
 
       assert {:noproc, _} =
                catch_exit(
-                 Embedding.Bumblebee.generate_embeddings_batch(
+                 Embedding.Nx.generate_embeddings_batch(
                    rag_state_list,
                    NonExisting.Serving,
                    :text,

@@ -1,4 +1,4 @@
-defmodule Rag.Generation.BumblebeeTest do
+defmodule Rag.Generation.NxTest do
   use ExUnit.Case
   use Mimic
 
@@ -35,7 +35,7 @@ defmodule Rag.Generation.BumblebeeTest do
                <|assistant|>
                """
              } =
-               Generation.Bumblebee.generate_response(%{
+               Generation.Nx.generate_response(%{
                  query: query,
                  query_results: query_results
                })
@@ -43,11 +43,11 @@ defmodule Rag.Generation.BumblebeeTest do
 
     test "errors if query or query_results not present" do
       assert_raise MatchError, fn ->
-        Generation.Bumblebee.generate_response(%{query: "hello"})
+        Generation.Nx.generate_response(%{query: "hello"})
       end
 
       assert_raise MatchError, fn ->
-        Generation.Bumblebee.generate_response(%{query_results: []})
+        Generation.Nx.generate_response(%{query_results: []})
       end
     end
 
@@ -59,7 +59,7 @@ defmodule Rag.Generation.BumblebeeTest do
       ]
 
       assert_raise KeyError, fn ->
-        Generation.Bumblebee.generate_response(%{query: query, query_results: query_results})
+        Generation.Nx.generate_response(%{query: query, query_results: query_results})
       end
     end
   end

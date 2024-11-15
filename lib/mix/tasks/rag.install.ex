@@ -395,7 +395,7 @@ defmodule Mix.Tasks.Rag.Install do
            |> Enum.map(&%{source: &1})
            |> Enum.map(&Rag.Loading.load_file(&1))
            |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
-           |> Rag.Embedding.Bumblebee.generate_embeddings_batch(:chunk, :embedding)
+           |> Rag.Embedding.Nx.generate_embeddings_batch(:chunk, :embedding)
            |> Enum.map(&to_chunk(&1))
 
          Repo.insert_all("chunks", chunks)
@@ -403,9 +403,9 @@ defmodule Mix.Tasks.Rag.Install do
 
        def query(query) do
          %{query: query}
-         |> Rag.Embedding.Bumblebee.generate_embedding(:query, :query_embedding)
+         |> Rag.Embedding.Nx.generate_embedding(:query, :query_embedding)
          |> query_with_pgvector()
-         |> Rag.Generation.Bumblebee.generate_response()
+         |> Rag.Generation.Nx.generate_response()
        end
 
        defp to_chunk(input) do
@@ -466,7 +466,7 @@ defmodule Mix.Tasks.Rag.Install do
            |> Enum.map(&%{source: &1})
            |> Enum.map(&Rag.Loading.load_file(&1))
            |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
-           |> Rag.Embedding.Bumblebee.generate_embeddings_batch(:chunk, :embedding)
+           |> Rag.Embedding.Nx.generate_embeddings_batch(:chunk, :embedding)
            |> Enum.map(&to_chunk(&1))
 
          Repo.insert_all("chunks", chunks)
@@ -474,9 +474,9 @@ defmodule Mix.Tasks.Rag.Install do
 
        def query(query) do
          %{query: query}
-         |> Rag.Embedding.Bumblebee.generate_embedding(:query, :query_embedding)
+         |> Rag.Embedding.Nx.generate_embedding(:query, :query_embedding)
          |> query_with_sqlite_vec()
-         |> Rag.Generation.Bumblebee.generate_response()
+         |> Rag.Generation.Nx.generate_response()
        end
 
        defp to_chunk(input) do
@@ -532,7 +532,7 @@ defmodule Mix.Tasks.Rag.Install do
        |> Enum.map(&%{source: &1})
        |> Enum.map(&Rag.Loading.load_file(&1))
        |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
-       |> Rag.Embedding.Bumblebee.generate_embeddings_batch(:chunk, :embedding)
+       |> Rag.Embedding.Nx.generate_embeddings_batch(:chunk, :embedding)
        |> insert_all_with_chroma(collection)
       end
 
@@ -540,9 +540,9 @@ defmodule Mix.Tasks.Rag.Install do
        {:ok, collection} = get_or_create("rag")
 
        %{query: query}
-       |> Rag.Embedding.Bumblebee.generate_embedding(:query, :query_embedding)
+       |> Rag.Embedding.Nx.generate_embedding(:query, :query_embedding)
        |> query_with_chroma(collection)
-       |> Rag.Generation.Bumblebee.generate_response()
+       |> Rag.Generation.Nx.generate_response()
       end
 
       defp insert_all_with_chroma(rag_state_list, collection) do
