@@ -1,6 +1,6 @@
 # Rag
 
-A library to make building performant RAG systems in Elixir easy.
+A library to make building performant RAG (Retrieval Augmented Generation) systems in Elixir easy.
 
 ## Installation
 
@@ -22,3 +22,5 @@ Currently supported options for `<vector_store>`:
 - `sqlite_vec`
 
 Brought to you by bitcrowd.
+
+![Light](https://github.com/user-attachments/assets/2b38d776-82dd-4dfb-983d-aebb1127a0df)
