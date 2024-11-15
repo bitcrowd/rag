@@ -57,7 +57,7 @@ defmodule Mix.Tasks.Rag.Install do
     igniter =
       igniter
       |> Igniter.Project.Deps.add_dep(
-        {:bumblebee, github: "joelpaulkoch/bumblebee", branch: "jina-embeddings-v2-base-code"}
+        {:bumblebee, github: "joelpaulkoch/bumblebee", branch: "jina-embeddings-v2"}
       )
       |> Igniter.Project.Deps.add_dep({:langchain, "~> 0.3.0-rc.0"})
       |> Igniter.Project.Deps.add_dep({:text_chunker, "~> 0.3.1"})
@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Rag.Install do
     repo_module = Module.concat(root_module, "Repo")
 
     igniter
-    |> Igniter.Project.Config.configure("config.exs", :sqlite_vec, [:version], "0.13.0")
+    |> Igniter.Project.Config.configure("config.exs", :sqlite_vec, [:version], "0.1.3")
     |> Igniter.Project.Config.configure(
       "runtime.exs",
       app_name,
@@ -146,13 +146,12 @@ defmodule Mix.Tasks.Rag.Install do
     postgrex_types_module = Module.concat(root_module, "PostgrexTypes")
 
     igniter
-    |> Igniter.include_or_create_file("lib/postgrex_types.ex", """
-      Postgrex.Types.define(
-      #{inspect(postgrex_types_module)},
-      [Pgvector.Extensions.Vector] ++ Ecto.Adapters.Postgres.extensions(),
-      []
-      )
-    """)
+    |> Igniter.include_or_create_file(
+      "lib/postgrex_types.ex",
+      """
+      Postgrex.Types.define(#{inspect(postgrex_types_module)}, [Pgvector.Extensions.Vector] ++ Ecto.Adapters.Postgres.extensions(), [])
+      """
+    )
     |> Igniter.Project.Config.configure(
       "config.exs",
       app_name,
@@ -175,20 +174,20 @@ defmodule Mix.Tasks.Rag.Install do
       igniter,
       schema_module,
       """
-        use Ecto.Schema
+      use Ecto.Schema
 
-        schema "chunks" do
-          field(:document, :string)
-          field(:source, :string)
-          field(:chunk, :string)
-          field(:embedding, Pgvector.Ecto.Vector)
+      schema "chunks" do
+        field(:document, :string)
+        field(:source, :string)
+        field(:chunk, :string)
+        field(:embedding, Pgvector.Ecto.Vector)
 
-          timestamps()
-        end
+        timestamps()
+      end
 
-        def changeset(chunk \\\\ %__MODULE__{}, attrs) do
-          Ecto.Changeset.cast(chunk, attrs, [:document, :source, :chunk, :embedding])
-        end
+      def changeset(chunk \\\\ %__MODULE__{}, attrs) do
+        Ecto.Changeset.cast(chunk, attrs, [:document, :source, :chunk, :embedding])
+      end
       """
     )
   end
@@ -207,20 +206,20 @@ defmodule Mix.Tasks.Rag.Install do
       igniter,
       schema_module,
       """
-        use Ecto.Schema
+      use Ecto.Schema
 
-        schema "chunks" do
-          field(:document, :string)
-          field(:source, :string)
-          field(:chunk, :string)
-          field(:embedding, SqliteVec.Ecto.Float32)
+      schema "chunks" do
+        field(:document, :string)
+        field(:source, :string)
+        field(:chunk, :string)
+        field(:embedding, SqliteVec.Ecto.Float32)
 
-          timestamps()
-        end
+        timestamps()
+      end
 
-        def changeset(chunk \\\\ %__MODULE__{}, attrs) do
-          Ecto.Changeset.cast(chunk, attrs, [:document, :source, :chunk, :embedding])
-        end
+      def changeset(chunk \\\\ %__MODULE__{}, attrs) do
+        Ecto.Changeset.cast(chunk, attrs, [:document, :source, :chunk, :embedding])
+      end
       """
     )
   end
@@ -301,42 +300,45 @@ defmodule Mix.Tasks.Rag.Install do
     servings_module = Module.concat(root_module, "Rag.Serving")
 
     igniter
-    |> Igniter.Project.Module.create_module(servings_module, """
-    def build_embedding_serving() do
-      repo = {:hf, "jinaai/jina-embeddings-v2-base-code"}
+    |> Igniter.Project.Module.create_module(
+      servings_module,
+      """
+      def build_embedding_serving() do
+        repo = {:hf, "jinaai/jina-embeddings-v2-base-en"}
 
-      {:ok, model_info} =
-        Bumblebee.load_model(repo,
-          spec_overrides: [architecture: :base],
-          params_filename: "model.safetensors"
+        {:ok, model_info} =
+          Bumblebee.load_model(repo,
+            spec_overrides: [architecture: :base],
+            params_filename: "model.safetensors"
+          )
+
+        {:ok, tokenizer} = Bumblebee.load_tokenizer(repo)
+
+        Bumblebee.Text.TextEmbedding.text_embedding(model_info, tokenizer,
+          compile: [batch_size: 64, sequence_length: 512],
+          defn_options: [compiler: EXLA],
+          output_attribute: :hidden_state,
+          output_pool: :mean_pooling
         )
+      end
 
-      {:ok, tokenizer} = Bumblebee.load_tokenizer(repo)
+      def build_llm_serving() do
+        repo = {:hf, "microsoft/phi-3.5-mini-instruct"}
 
-      Bumblebee.Text.TextEmbedding.text_embedding(model_info, tokenizer,
-        compile: [batch_size: 64, sequence_length: 512],
-        defn_options: [compiler: EXLA],
-        output_attribute: :hidden_state,
-        output_pool: :mean_pooling
-      )
-    end
+        {:ok, model_info} = Bumblebee.load_model(repo)
+        {:ok, tokenizer} = Bumblebee.load_tokenizer(repo)
+        {:ok, generation_config} = Bumblebee.load_generation_config(repo)
 
-    def build_llm_serving() do
-      repo = {:hf, "microsoft/phi-3.5-mini-instruct"}
+        generation_config = Bumblebee.configure(generation_config, max_new_tokens: 100)
 
-      {:ok, model_info} = Bumblebee.load_model(repo)
-      {:ok, tokenizer} = Bumblebee.load_tokenizer(repo)
-      {:ok, generation_config} = Bumblebee.load_generation_config(repo)
-
-      generation_config = Bumblebee.configure(generation_config, max_new_tokens: 100)
-
-      Bumblebee.Text.generation(model_info, tokenizer, generation_config,
-        compile: [batch_size: 1, sequence_length: 6000],
-        defn_options: [compiler: EXLA],
-        stream: false
-      )
-    end
-    """)
+        Bumblebee.Text.generation(model_info, tokenizer, generation_config,
+          compile: [batch_size: 1, sequence_length: 6000],
+          defn_options: [compiler: EXLA],
+          stream: false
+        )
+      end
+      """
+    )
     |> Igniter.Project.Application.add_new_child(
       {Nx.Serving,
        {:code,
@@ -377,57 +379,56 @@ defmodule Mix.Tasks.Rag.Install do
       igniter,
       rag_module,
       """
-       alias #{inspect(repo_module)}
-       import Ecto.Query
-       import Pgvector.Ecto.Query
+      alias #{inspect(repo_module)}
+      import Ecto.Query
+      import Pgvector.Ecto.Query
 
-       defp list_elixir_files(path) do
-         Path.wildcard(path <> "/**/*.{ex, exs}")
-         |> Enum.filter(fn path ->
-           not String.contains?(path, ["/_build/", "/deps/", "/node_modules/"])
-         end)
-       end
+      defp list_text_files(path) do
+      path
+        |> Path.join("/**/*.txt")
+        |> Path.wildcard()
+      end
 
-       def ingest(path) do
-         chunks =
-           path
-           |> list_elixir_files()
-           |> Enum.map(&%{source: &1})
-           |> Enum.map(&Rag.Loading.load_file(&1))
-           |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
-           |> Rag.Embedding.Nx.generate_embeddings_batch(:chunk, :embedding)
-           |> Enum.map(&to_chunk(&1))
+      def ingest(path) do
+        chunks =
+          path
+          |> list_text_files()
+          |> Enum.map(&%{source: &1})
+          |> Enum.map(&Rag.Loading.load_file(&1))
+          |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
+          |> Rag.Embedding.Nx.generate_embeddings_batch(:chunk, :embedding)
+          |> Enum.map(&to_chunk(&1))
 
-         Repo.insert_all("chunks", chunks)
-       end
+        Repo.insert_all(#{inspect(schema_module)}, chunks)
+      end
 
-       def query(query) do
-         %{query: query}
-         |> Rag.Embedding.Nx.generate_embedding(:query, :query_embedding)
-         |> query_with_pgvector()
-         |> Rag.Generation.Nx.generate_response()
-       end
+      def query(query) do
+        %{query: query}
+        |> Rag.Embedding.Nx.generate_embedding(:query, :query_embedding)
+        |> query_with_pgvector()
+        |> Rag.Generation.Nx.generate_response()
+      end
 
-       defp to_chunk(input) do
-         now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+      defp to_chunk(input) do
+        now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
-         input
-         |> Map.take([:document, :source, :chunk, :embedding])
-         |> Map.put_new(:inserted_at, now)
-         |> Map.put_new(:updated_at, now)
-       end
+        input
+        |> Map.take([:document, :source, :chunk, :embedding])
+        |> Map.put_new(:inserted_at, now)
+        |> Map.put_new(:updated_at, now)
+      end
 
-       defp query_with_pgvector(%{query_embedding: query_embedding} = input, limit \\\\ 3) do
-         results =
-           Repo.all(
-             from(c in #{inspect(schema_module)},
-               order_by: l2_distance(c.embedding, ^Pgvector.new(query_embedding)),
-               limit: ^limit
-             )
-           )
+      defp query_with_pgvector(%{query_embedding: query_embedding} = input, limit \\\\ 3) do
+        results =
+          Repo.all(
+            from(c in #{inspect(schema_module)},
+              order_by: l2_distance(c.embedding, ^Pgvector.new(query_embedding)),
+              limit: ^limit
+            )
+          )
 
-         Map.put(input, :query_results, results)
-       end
+       Map.put(input, :query_results, results)
+      end
       """
     )
   end
@@ -448,57 +449,56 @@ defmodule Mix.Tasks.Rag.Install do
       igniter,
       rag_module,
       """
-       alias #{inspect(repo_module)}
-       import Ecto.Query
-       import SqliteVec.Ecto.Query
+      alias #{inspect(repo_module)}
+      import Ecto.Query
+      import SqliteVec.Ecto.Query
 
-       defp list_elixir_files(path) do
-         Path.wildcard(path <> "/**/*.{ex, exs}")
-         |> Enum.filter(fn path ->
-           not String.contains?(path, ["/_build/", "/deps/", "/node_modules/"])
-         end)
-       end
+      defp list_text_files(path) do
+        path
+          |> Path.join("/**/*.txt")
+          |> Path.wildcard()
+      end
 
-       def ingest(path) do
-         chunks =
-           path
-           |> list_elixir_files()
-           |> Enum.map(&%{source: &1})
-           |> Enum.map(&Rag.Loading.load_file(&1))
-           |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
-           |> Rag.Embedding.Nx.generate_embeddings_batch(:chunk, :embedding)
-           |> Enum.map(&to_chunk(&1))
+      def ingest(path) do
+        chunks =
+          path
+          |> list_text_files()
+          |> Enum.map(&%{source: &1})
+          |> Enum.map(&Rag.Loading.load_file(&1))
+          |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
+          |> Rag.Embedding.Nx.generate_embeddings_batch(:chunk, :embedding)
+          |> Enum.map(&to_chunk(&1))
 
-         Repo.insert_all("chunks", chunks)
-       end
+        Repo.insert_all(#{inspect(schema_module)}, chunks)
+      end
 
-       def query(query) do
-         %{query: query}
-         |> Rag.Embedding.Nx.generate_embedding(:query, :query_embedding)
-         |> query_with_sqlite_vec()
-         |> Rag.Generation.Nx.generate_response()
-       end
+      def query(query) do
+        %{query: query}
+        |> Rag.Embedding.Nx.generate_embedding(:query, :query_embedding)
+        |> query_with_sqlite_vec()
+        |> Rag.Generation.Nx.generate_response()
+      end
 
-       defp to_chunk(input) do
-         now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+      defp to_chunk(input) do
+        now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
-         input
-         |> Map.take([:document, :source, :chunk, :embedding])
-         |> Map.put_new(:inserted_at, now)
-         |> Map.put_new(:updated_at, now)
-       end
+        input
+        |> Map.take([:document, :source, :chunk, :embedding])
+        |> Map.put_new(:inserted_at, now)
+        |> Map.put_new(:updated_at, now)
+      end
 
-       defp query_with_sqlite_vec(%{query_embedding: query_embedding} = input, limit \\\\ 3) do
-         results =
-           Repo.all(
-             from(c in #{inspect(schema_module)},
-               order_by: l2_distance(c.embedding, vec_f32(^SqliteVec.Float32.new(query_embedding).data)),
-               limit: ^limit
-             )
-           )
+      defp query_with_sqlite_vec(%{query_embedding: query_embedding} = input, limit \\\\ 3) do
+        results =
+          Repo.all(
+            from(c in #{inspect(schema_module)},
+              order_by: l2_distance(c.embedding, vec_f32(^SqliteVec.Float32.new(query_embedding).data)),
+              limit: ^limit
+            )
+          )
 
-         Map.put(input, :query_results, results)
-       end
+        Map.put(input, :query_results, results)
+      end
       """
     )
   end
@@ -517,42 +517,41 @@ defmodule Mix.Tasks.Rag.Install do
       igniter,
       rag_module,
       """
-      defp list_elixir_files(path) do
-       Path.wildcard(path <> "/**/*.{ex, exs}")
-       |> Enum.filter(fn path ->
-         not String.contains?(path, ["/_build/", "/deps/", "/node_modules/"])
-       end)
+      defp list_text_files(path) do
+        path
+          |> Path.join("/**/*.txt")
+          |> Path.wildcard()
       end
 
       def ingest(path) do
-       {:ok, collection} = get_or_create("rag")
+        {:ok, collection} = Chroma.Collection.get_or_create("rag", %{"hnsw:space" => "l2"})
 
-       path
-       |> list_elixir_files()
-       |> Enum.map(&%{source: &1})
-       |> Enum.map(&Rag.Loading.load_file(&1))
-       |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
-       |> Rag.Embedding.Nx.generate_embeddings_batch(:chunk, :embedding)
-       |> insert_all_with_chroma(collection)
+        path
+        |> list_text_files()
+        |> Enum.map(&%{source: &1})
+        |> Enum.map(&Rag.Loading.load_file(&1))
+        |> Enum.flat_map(&Rag.Loading.chunk_text(&1))
+        |> Rag.Embedding.Nx.generate_embeddings_batch(:chunk, :embedding)
+        |> insert_all_with_chroma(collection)
       end
 
       def query(query) do
-       {:ok, collection} = get_or_create("rag")
+        {:ok, collection} = Chroma.Collection.get_or_create("rag", %{"hnsw:space" => "l2"})
 
-       %{query: query}
-       |> Rag.Embedding.Nx.generate_embedding(:query, :query_embedding)
-       |> query_with_chroma(collection)
-       |> Rag.Generation.Nx.generate_response()
+        %{query: query}
+        |> Rag.Embedding.Nx.generate_embedding(:query, :query_embedding)
+        |> query_with_chroma(collection)
+        |> Rag.Generation.Nx.generate_response()
       end
 
       defp insert_all_with_chroma(rag_state_list, collection) do
-       batch = to_chroma_batch(rag_state_list)
+        batch = to_chroma_batch(rag_state_list)
 
-       Chroma.Collection.add(collection, batch)
+        Chroma.Collection.add(collection, batch)
       end
 
       defp query_with_chroma(rag_state, collection, limit \\\\ 3) do
-       %{query_embedding: query_embedding} = rag_state
+        %{query_embedding: query_embedding} = rag_state
 
         {:ok, results} =
           Chroma.Collection.query(collection,
@@ -560,18 +559,14 @@ defmodule Mix.Tasks.Rag.Install do
             query_embeddings: [query_embedding]
           )
 
-        {documents, sources} = {results["documents"], results["ids"]}
+        {documents, sources} = {hd(results["documents"]), hd(results["ids"])}
 
         results =
           Enum.zip(documents, sources)
           |> Enum.map(fn {document, source} -> %{document: document, source: source} end)
 
         Map.put(rag_state, :query_results, results)
-       end
-
-       
-      def get_or_create(name, opts \\\\ %{}), do: Chroma.Collection.get_or_create(name, opts)
-      def delete(collection), do: Chroma.Collection.delete(collection)
+      end
 
       defp to_chroma_batch(rag_state_list) do
         for %{document: document, source: source, chunk: chunk, embedding: embedding} <-

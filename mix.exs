@@ -39,7 +39,7 @@ defmodule Rag.MixProject do
       {:pgvector, "~> 0.3.0"},
       {:chroma, "~> 0.1.3"},
       {:sqlite_vec, github: "joelpaulkoch/sqlite_vec"},
-      {:bumblebee, github: "joelpaulkoch/bumblebee", branch: "jina-embeddings-v2-base-code"},
+      {:bumblebee, github: "joelpaulkoch/bumblebee", branch: "jina-embeddings-v2"},
       {:langchain, "~> 0.3.0-rc.0"},
       {:text_chunker, "~> 0.3.1"},
       {:nx, "~> 0.9.0"},
