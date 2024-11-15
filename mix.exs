@@ -28,24 +28,25 @@ defmodule Rag.MixProject do
 
   defp deps do
     [
-      {:req, "~> 0.5.0"},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:igniter, "~> 0.1",
        github: "ash-project/igniter", ref: "954e0f5be9cc0dbd1ffca7eace28839657e6dfb7"},
       {:mimic, "~> 1.10", only: :test},
-      {:ecto, "~> 3.12"},
-      {:ecto_sql, "~> 3.12"},
-      {:ecto_sqlite3, ">= 0.0.0"},
-      {:pgvector, "~> 0.3.0"},
-      {:chroma, "~> 0.1.3"},
-      {:sqlite_vec, github: "joelpaulkoch/sqlite_vec"},
-      {:bumblebee, github: "joelpaulkoch/bumblebee", branch: "jina-embeddings-v2"},
-      {:langchain, "~> 0.3.0-rc.0"},
+      {:req, "~> 0.5.0"},
+      {:ecto, "~> 3.12", optional: true},
+      {:ecto_sql, "~> 3.12", optional: true},
+      {:ecto_sqlite3, ">= 0.0.0", optional: true},
+      {:pgvector, "~> 0.3.0", optional: true},
+      {:chroma, "~> 0.1.3", optional: true},
+      {:sqlite_vec, github: "joelpaulkoch/sqlite_vec", optional: true},
+      {:bumblebee,
+       github: "joelpaulkoch/bumblebee", branch: "jina-embeddings-v2", optional: true},
+      {:langchain, "~> 0.3.0-rc.0", optional: true},
       {:text_chunker, "~> 0.3.1"},
-      {:nx, "~> 0.9.0"},
-      {:exla, "~> 0.9.1"},
-      {:axon, "~> 0.7.0"}
+      {:nx, "~> 0.9.0", optional: true},
+      {:exla, "~> 0.9.1", optional: true},
+      {:axon, "~> 0.7.0", optional: true}
     ]
   end
 
