@@ -6,7 +6,8 @@ defmodule Rag.Generation.LangChain do
   alias LangChain.Message
 
   @doc """
-  Creates a prompt from `query` and the context extracted from `query_results` and passes it to an LLM specified by `chain` to generate a response.
+  Takes the values of `query` and `query_results` from `rag_state`.
+  Creates a context from `query_results` and injects `query` and the context into a prompt which is then passed to to an LLM specified by `chain` to generate a response.
   Then, puts `context`, `context_sources`, and `response` in `rag_state`.
   """
   @spec generate_response(
