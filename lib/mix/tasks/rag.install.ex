@@ -86,7 +86,7 @@ defmodule Mix.Tasks.Rag.Install do
     igniter
     |> Igniter.Project.Deps.add_dep({:ecto, "~> 3.12"})
     |> Igniter.Project.Deps.add_dep({:ecto_sql, "~> 3.12"})
-    |> Igniter.Project.Deps.add_dep({:sqlite_vec, github: "joelpaulkoch/sqlite_vec"})
+    |> Igniter.Project.Deps.add_dep({:sqlite_vec, "~> 0.1.0", override: true})
     |> Igniter.apply_and_fetch_dependencies()
     |> add_config(:sqlite_vec)
     |> add_schema(:sqlite_vec)
@@ -113,7 +113,7 @@ defmodule Mix.Tasks.Rag.Install do
     repo_module = Module.concat(root_module, "Repo")
 
     igniter
-    |> Igniter.Project.Config.configure("config.exs", :sqlite_vec, [:version], "0.1.3")
+    |> Igniter.Project.Config.configure("config.exs", :sqlite_vec, [:version], "0.1.5")
     |> Igniter.Project.Config.configure(
       "runtime.exs",
       app_name,
@@ -494,7 +494,7 @@ defmodule Mix.Tasks.Rag.Install do
         results =
           Repo.all(
             from(c in #{inspect(schema_module)},
-              order_by: l2_distance(c.embedding, vec_f32(^SqliteVec.Float32.new(query_embedding).data)),
+              order_by: vec_distance_L2(c.embedding, vec_f32(SqliteVec.Float32.new(query_embedding))),
               limit: ^limit
             )
           )

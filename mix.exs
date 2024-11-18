@@ -39,7 +39,7 @@ defmodule Rag.MixProject do
       {:ecto_sqlite3, ">= 0.0.0", optional: true},
       {:pgvector, "~> 0.3.0", optional: true},
       {:chroma, "~> 0.1.3", optional: true},
-      {:sqlite_vec, github: "joelpaulkoch/sqlite_vec", optional: true},
+      {:sqlite_vec, "~> 0.1.0", optional: true},
       {:bumblebee,
        github: "joelpaulkoch/bumblebee", branch: "jina-embeddings-v2", optional: true},
       {:langchain, "~> 0.3.0-rc.0", optional: true},
