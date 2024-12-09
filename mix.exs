@@ -30,8 +30,7 @@ defmodule Rag.MixProject do
     [
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:igniter, "~> 0.1",
-       github: "ash-project/igniter", ref: "954e0f5be9cc0dbd1ffca7eace28839657e6dfb7"},
+      {:igniter, "~> 0.4", runtime: false},
       {:mimic, "~> 1.10", only: :test},
       {:req, "~> 0.5.0"},
       {:ecto, "~> 3.12", optional: true},
