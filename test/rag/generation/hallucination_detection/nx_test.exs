@@ -56,5 +56,37 @@ defmodule Rag.Generation.HallucinationDetection.NxTest do
         })
       end
     end
+
+    test "emits start, stop, and exception telemetry events" do
+      expect(Nx.Serving, :batched_run, fn _serving, _prompt ->
+        %{results: [%{text: "not relevant in this test"}]}
+      end)
+
+      query = "an important query"
+      context = "some context"
+      response = "not relevant in this test"
+
+      rag_state = %{query: query, context: context, response: response}
+
+      ref =
+        :telemetry_test.attach_event_handlers(self(), [
+          [:rag, :detect_hallucination, :start],
+          [:rag, :detect_hallucination, :stop],
+          [:rag, :detect_hallucination, :exception]
+        ])
+
+      HallucinationDetection.Nx.detect_hallucination(rag_state)
+
+      assert_received {[:rag, :detect_hallucination, :start], ^ref, _measurement, _meta}
+      assert_received {[:rag, :detect_hallucination, :stop], ^ref, _measurement, _meta}
+
+      expect(Nx.Serving, :batched_run, fn _serving, _prompt -> raise "boom" end)
+
+      assert_raise RuntimeError, fn ->
+        HallucinationDetection.Nx.detect_hallucination(rag_state)
+      end
+
+      assert_received {[:rag, :detect_hallucination, :exception], ^ref, _measurement, _meta}
+    end
   end
 end

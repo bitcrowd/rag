@@ -24,13 +24,21 @@ defmodule Rag.Embedding.OpenAI do
 
     %{model: model, api_key: api_key} = openai_params
 
+    metadata = %{embeddings_url: @embeddings_url, model: model, rag_state: rag_state}
+
     [result] =
-      Req.post!(@embeddings_url,
-        auth: {:bearer, api_key},
-        json: %{model: model, input: text}
-      ).body["data"]
+      :telemetry.span([:rag, :generate_embedding], metadata, fn ->
+        result =
+          Req.post!(@embeddings_url,
+            auth: {:bearer, api_key},
+            json: %{model: model, input: text}
+          ).body["data"]
+
+        {result, metadata}
+      end)
 
     embedding = result["embedding"]
+
     Map.put(rag_state, target_key, embedding)
   end
 
@@ -55,11 +63,18 @@ defmodule Rag.Embedding.OpenAI do
 
     %{model: model, api_key: api_key} = openai_params
 
+    metadata = %{embeddings_url: @embeddings_url, model: model, rag_state_list: rag_state_list}
+
     results =
-      Req.post!(@embeddings_url,
-        auth: {:bearer, api_key},
-        json: %{model: model, input: texts}
-      ).body["data"]
+      :telemetry.span([:rag, :generate_embeddings_batch], metadata, fn ->
+        result =
+          Req.post!(@embeddings_url,
+            auth: {:bearer, api_key},
+            json: %{model: model, input: texts}
+          ).body["data"]
+
+        {result, metadata}
+      end)
 
     embeddings = Enum.map(results, &Map.fetch!(&1, "embedding"))
 

@@ -39,6 +39,37 @@ defmodule Rag.Embedding.NxTest do
                  )
                )
     end
+
+    test "emits start, stop, and exception telemetry events" do
+      expect(Nx.Serving, :batched_run, fn serving, text ->
+        assert serving == TestServing
+        assert text == "hello"
+
+        %{embedding: Nx.tensor([1, 2, 3])}
+      end)
+
+      rag_state = %{text: "hello"}
+
+      ref =
+        :telemetry_test.attach_event_handlers(self(), [
+          [:rag, :generate_embedding, :start],
+          [:rag, :generate_embedding, :stop],
+          [:rag, :generate_embedding, :exception]
+        ])
+
+      Embedding.Nx.generate_embedding(rag_state, TestServing, :text, :output)
+
+      assert_received {[:rag, :generate_embedding, :start], ^ref, _measurement, _meta}
+      assert_received {[:rag, :generate_embedding, :stop], ^ref, _measurement, _meta}
+
+      expect(Nx.Serving, :batched_run, fn _serving, _text -> raise "boom" end)
+
+      assert_raise RuntimeError, fn ->
+        Embedding.Nx.generate_embedding(rag_state, TestServing, :text, :output)
+      end
+
+      assert_received {[:rag, :generate_embedding, :exception], ^ref, _measurement, _meta}
+    end
   end
 
   describe "generate_embeddings_batch/4" do
@@ -73,6 +104,34 @@ defmodule Rag.Embedding.NxTest do
                    :output
                  )
                )
+    end
+
+    test "emits start, stop, and exception telemetry events" do
+      expect(Nx.Serving, :batched_run, fn _serving, ["hello", "hello again"] ->
+        [%{embedding: Nx.tensor([1, 2, 3])}, %{embedding: Nx.tensor([4, 5, 6])}]
+      end)
+
+      rag_state_list = [%{text: "hello"}, %{text: "hello again"}]
+
+      ref =
+        :telemetry_test.attach_event_handlers(self(), [
+          [:rag, :generate_embeddings_batch, :start],
+          [:rag, :generate_embeddings_batch, :stop],
+          [:rag, :generate_embeddings_batch, :exception]
+        ])
+
+      Embedding.Nx.generate_embeddings_batch(rag_state_list, :text, :output)
+
+      assert_received {[:rag, :generate_embeddings_batch, :start], ^ref, _measurement, _meta}
+      assert_received {[:rag, :generate_embeddings_batch, :stop], ^ref, _measurement, _meta}
+
+      expect(Nx.Serving, :batched_run, fn _serving, _text -> raise "boom" end)
+
+      assert_raise RuntimeError, fn ->
+        Embedding.Nx.generate_embeddings_batch(rag_state_list, :text, :output)
+      end
+
+      assert_received {[:rag, :generate_embeddings_batch, :exception], ^ref, _measurement, _meta}
     end
   end
 end

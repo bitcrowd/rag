@@ -15,7 +15,13 @@ defmodule Rag.Embedding.Nx do
   def generate_embedding(rag_state, serving \\ Rag.EmbeddingServing, source_key, target_key) do
     text = Map.fetch!(rag_state, source_key)
 
-    %{embedding: embedding} = Nx.Serving.batched_run(serving, text)
+    metadata = %{serving: serving, rag_state: rag_state}
+
+    %{embedding: embedding} =
+      :telemetry.span([:rag, :generate_embedding], metadata, fn ->
+        result = Nx.Serving.batched_run(serving, text)
+        {result, metadata}
+      end)
 
     Map.put(rag_state, target_key, Nx.to_list(embedding))
   end
@@ -34,7 +40,13 @@ defmodule Rag.Embedding.Nx do
       ) do
     texts = Enum.map(rag_state_list, &Map.fetch!(&1, source_key))
 
-    embeddings = Nx.Serving.batched_run(serving, texts)
+    metadata = %{serving: serving, rag_state_list: rag_state_list}
+
+    embeddings =
+      :telemetry.span([:rag, :generate_embeddings_batch], metadata, fn ->
+        result = Nx.Serving.batched_run(serving, texts)
+        {result, metadata}
+      end)
 
     Enum.zip(rag_state_list, embeddings)
     |> Enum.map(fn {rag_state, embedding} ->

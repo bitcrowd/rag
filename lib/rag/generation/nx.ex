@@ -11,7 +11,14 @@ defmodule Rag.Generation.Nx do
   def generate_response(rag_state, serving \\ Rag.LLMServing) do
     %{prompt: prompt} = rag_state
 
-    %{results: [result]} = Nx.Serving.batched_run(serving, prompt)
+    metadata = %{serving: serving, rag_state: rag_state}
+
+    %{results: [result]} =
+      :telemetry.span([:rag, :generate_response], metadata, fn ->
+        result = Nx.Serving.batched_run(serving, prompt)
+
+        {result, metadata}
+      end)
 
     Map.put(rag_state, :response, result.text)
   end

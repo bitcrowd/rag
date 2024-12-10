@@ -26,10 +26,17 @@ defmodule Rag.Generation.HallucinationDetection.LangChain do
       Response: #{response}
       """
 
+    metadata = %{chain: chain, rag_state: rag_state}
+
     {:ok, _updated_chain, response} =
-      chain
-      |> LLMChain.add_message(Message.new_user!(prompt))
-      |> LLMChain.run()
+      :telemetry.span([:rag, :detect_hallucination], metadata, fn ->
+        result =
+          chain
+          |> LLMChain.add_message(Message.new_user!(prompt))
+          |> LLMChain.run()
+
+        {result, metadata}
+      end)
 
     hallucination? = response.content != "YES"
 

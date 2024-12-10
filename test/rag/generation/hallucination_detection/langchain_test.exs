@@ -85,5 +85,45 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
         )
       end
     end
+
+    test "emits start, stop, and exception telemetry events" do
+      LLMChain
+      |> expect(:add_message, fn chain, message ->
+        call_original(LLMChain, :add_message, [chain, message])
+      end)
+      |> expect(:run, fn chain ->
+        {:ok, chain, %{content: "not relevant in this test"}}
+      end)
+
+      query = "an important query"
+      context = "some context"
+      response = "not relevant in this test"
+
+      rag_state = %{query: query, context: context, response: response}
+
+      ref =
+        :telemetry_test.attach_event_handlers(self(), [
+          [:rag, :detect_hallucination, :start],
+          [:rag, :detect_hallucination, :stop],
+          [:rag, :detect_hallucination, :exception]
+        ])
+
+      HallucinationDetection.LangChain.detect_hallucination(rag_state, @chain)
+
+      assert_received {[:rag, :detect_hallucination, :start], ^ref, _measurement, _meta}
+      assert_received {[:rag, :detect_hallucination, :stop], ^ref, _measurement, _meta}
+
+      LLMChain
+      |> expect(:add_message, fn chain, message ->
+        call_original(LLMChain, :add_message, [chain, message])
+      end)
+      |> expect(:run, fn _chain -> raise "boom" end)
+
+      assert_raise RuntimeError, fn ->
+        HallucinationDetection.LangChain.detect_hallucination(rag_state, @chain)
+      end
+
+      assert_received {[:rag, :detect_hallucination, :exception], ^ref, _measurement, _meta}
+    end
   end
 end

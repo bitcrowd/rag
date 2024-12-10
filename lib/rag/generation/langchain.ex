@@ -13,10 +13,17 @@ defmodule Rag.Generation.LangChain do
   def generate_response(rag_state, chain) do
     %{prompt: prompt} = rag_state
 
+    metadata = %{chain: chain, rag_state: rag_state}
+
     {:ok, _updated_chain, response} =
-      chain
-      |> LLMChain.add_message(Message.new_user!(prompt))
-      |> LLMChain.run()
+      :telemetry.span([:rag, :generate_response], metadata, fn ->
+        result =
+          chain
+          |> LLMChain.add_message(Message.new_user!(prompt))
+          |> LLMChain.run()
+
+        {result, metadata}
+      end)
 
     Map.put(rag_state, :response, response.content)
   end

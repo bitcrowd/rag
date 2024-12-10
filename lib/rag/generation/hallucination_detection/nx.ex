@@ -27,7 +27,14 @@ defmodule Rag.Generation.HallucinationDetection.Nx do
       <|assistant|>
       """
 
-    %{results: [result]} = Nx.Serving.batched_run(serving, prompt)
+    metadata = %{serving: serving, rag_state: rag_state}
+
+    %{results: [result]} =
+      :telemetry.span([:rag, :detect_hallucination], metadata, fn ->
+        result = Nx.Serving.batched_run(serving, prompt)
+
+        {result, metadata}
+      end)
 
     hallucination? = result.text != "YES"
 
