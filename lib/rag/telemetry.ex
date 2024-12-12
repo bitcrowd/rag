@@ -13,6 +13,9 @@ defmodule Rag.Telemetry do
     [:rag, :generate_response, :start],
     [:rag, :generate_response, :exception],
     [:rag, :generate_response, :stop],
+    [:rag, :retrieve, :start],
+    [:rag, :retrieve, :exception],
+    [:rag, :retrieve, :stop],
     [:rag, :detect_hallucination, :start],
     [:rag, :detect_hallucination, :exception],
     [:rag, :detect_hallucination, :stop]

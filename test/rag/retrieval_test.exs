@@ -4,6 +4,51 @@ defmodule Rag.RetrievalTest do
 
   alias Rag.Retrieval
 
+  describe "retrieve/2" do
+    test "calls the function passed as second argument and returns its result" do
+      fun = fn state ->
+        assert state == %{test: "test"}
+        Map.put(state, :result, "hello, you called me")
+      end
+
+      rag_state = %{test: "test"}
+
+      assert Rag.Retrieval.retrieve(rag_state, &fun.(&1)) == %{
+               test: "test",
+               result: "hello, you called me"
+             }
+    end
+
+    test "emits start, stop, and exception events" do
+      fun = fn state ->
+        assert state == %{test: "test"}
+        Map.put(state, :result, "hello, you called me")
+      end
+
+      rag_state = %{test: "test"}
+
+      ref =
+        :telemetry_test.attach_event_handlers(self(), [
+          [:rag, :retrieve, :start],
+          [:rag, :retrieve, :stop],
+          [:rag, :retrieve, :exception]
+        ])
+
+      Rag.Retrieval.retrieve(rag_state, &fun.(&1))
+
+      assert_received {[:rag, :retrieve, :start], ^ref, _measurement, _meta}
+      assert_received {[:rag, :retrieve, :stop], ^ref, _measurement, _meta}
+
+      failing_function = fn _state -> raise "boom" end
+
+      assert_raise RuntimeError, fn ->
+        Rag.Retrieval.retrieve(rag_state, &failing_function.(&1))
+      end
+
+      assert_received {[:rag, :retrieve, :exception], ^ref, _measurement, _meta}
+    end
+  end
+
   describe "combine_retrieval_results/3" do
     test "pops the results at retrieval_result_keys and combines them into a list at output_key" do
       foo_results = [%{id: 0, text: "something"}, %{id: 1, text: "something else"}]

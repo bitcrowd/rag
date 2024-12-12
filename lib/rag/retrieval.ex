@@ -4,6 +4,22 @@ defmodule Rag.Retrieval do
   """
 
   @doc """
+  Calls `retrieval_function` with `rag_state` as only argument.
+  `retrieval_function` must return the updated `rag_state`.
+  The main purpose of `retrieve/2` is to emit telemetry events.
+  """
+  @spec retrieve(map(), (map() -> map())) :: map()
+  def retrieve(rag_state, retrieval_function) do
+    metadata = %{rag_state: rag_state}
+
+    :telemetry.span([:rag, :retrieve], metadata, fn ->
+      result = retrieval_function.(rag_state)
+
+      {result, metadata}
+    end)
+  end
+
+  @doc """
   Pops the retrieval result for each key in `retrieval_result_keys` from `rag_state`.
   Then, appends the retrieval result to the list at `output_key`.
   """
