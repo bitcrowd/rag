@@ -23,8 +23,8 @@ defmodule Rag.Retrieval do
   Pops the retrieval result for each key in `retrieval_result_keys` from `rag_state`.
   Then, appends the retrieval result to the list at `output_key`.
   """
-  @spec combine_retrieval_results(map(), list(atom()), atom()) :: map()
-  def combine_retrieval_results(rag_state, retrieval_result_keys, output_key) do
+  @spec concatenate_retrieval_results(map(), list(atom()), atom()) :: map()
+  def concatenate_retrieval_results(rag_state, retrieval_result_keys, output_key) do
     rag_state = Map.put_new(rag_state, output_key, [])
 
     for retrieval_result_key <- retrieval_result_keys, reduce: rag_state do

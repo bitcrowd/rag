@@ -49,7 +49,7 @@ defmodule Rag.RetrievalTest do
     end
   end
 
-  describe "combine_retrieval_results/3" do
+  describe "concatenate_retrieval_results/3" do
     test "pops the results at retrieval_result_keys and combines them into a list at output_key" do
       foo_results = [%{id: 0, text: "something"}, %{id: 1, text: "something else"}]
       bar_results = [%{id: 0, text: "bar"}, %{id: 1, text: "bar else"}]
@@ -60,7 +60,7 @@ defmodule Rag.RetrievalTest do
       output_key = :combined_result
 
       output_rag_state =
-        Retrieval.combine_retrieval_results(rag_state, retrieval_result_keys, output_key)
+        Retrieval.concatenate_retrieval_results(rag_state, retrieval_result_keys, output_key)
 
       for key <- retrieval_result_keys do
         refute Map.has_key?(output_rag_state, key)
@@ -74,7 +74,7 @@ defmodule Rag.RetrievalTest do
       new_results = [%{id: 1001, text: "new result"}]
       rag_state = %{results: existing_results, new: new_results}
 
-      output_rag_state = Retrieval.combine_retrieval_results(rag_state, [:new], :results)
+      output_rag_state = Retrieval.concatenate_retrieval_results(rag_state, [:new], :results)
 
       assert Map.fetch!(output_rag_state, :results) == existing_results ++ new_results
     end
@@ -83,7 +83,7 @@ defmodule Rag.RetrievalTest do
       rag_state = %{text: "hello"}
 
       assert_raise KeyError, fn ->
-        Retrieval.combine_retrieval_results(rag_state, [:foo], :results)
+        Retrieval.concatenate_retrieval_results(rag_state, [:foo], :results)
       end
     end
   end
