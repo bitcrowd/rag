@@ -69,14 +69,14 @@ defmodule Rag.RetrievalTest do
       assert Map.fetch!(output_rag_state, output_key) == foo_results ++ bar_results
     end
 
-    test "keeps existing results at output_key" do
+    test "overwrites existing results at output_key" do
       existing_results = [%{id: 0, text: "existing"}]
       new_results = [%{id: 1001, text: "new result"}]
       rag_state = %{results: existing_results, new: new_results}
 
       output_rag_state = Retrieval.concatenate_retrieval_results(rag_state, [:new], :results)
 
-      assert Map.fetch!(output_rag_state, :results) == existing_results ++ new_results
+      assert Map.fetch!(output_rag_state, :results) == new_results
     end
 
     test "errors if one of retrieval_result_keys is not in rag_state" do
@@ -84,6 +84,105 @@ defmodule Rag.RetrievalTest do
 
       assert_raise KeyError, fn ->
         Retrieval.concatenate_retrieval_results(rag_state, [:foo], :results)
+      end
+    end
+  end
+
+  describe "reciprocal_rank_fusion/3" do
+    test "pops the results at retrieval_result_keys and fuses the results based on the ranking of items in the results" do
+      foo_results = [%{id: 0, text: "something"}, %{id: 1, text: "something else"}]
+      bar_results = [%{id: 2, text: "bar"}, %{id: 3, text: "bar else"}]
+
+      rag_state = %{foo: foo_results, bar: bar_results}
+
+      retrieval_result_keys_and_weights = %{foo: 1, bar: 1}
+      output_key = :rrf_result
+
+      output_rag_state =
+        Retrieval.reciprocal_rank_fusion(rag_state, retrieval_result_keys_and_weights, output_key)
+
+      for {key, _weight} <- retrieval_result_keys_and_weights do
+        refute Map.has_key?(output_rag_state, key)
+      end
+
+      assert Map.fetch!(output_rag_state, output_key) == [
+               %{id: 0, text: "something"},
+               %{id: 2, text: "bar"},
+               %{id: 1, text: "something else"},
+               %{id: 3, text: "bar else"}
+             ]
+    end
+
+    test "sums scores of same document in different result lists" do
+      foo_results = [%{id: 0, text: "foo"}, %{id: 1, text: "important"}]
+      bar_results = [%{id: 2, text: "bar"}, %{id: 1, text: "important"}]
+
+      rag_state = %{foo: foo_results, bar: bar_results}
+
+      retrieval_result_keys_and_weights = %{foo: 1, bar: 1}
+      output_key = :rrf_result
+
+      output_rag_state =
+        Retrieval.reciprocal_rank_fusion(rag_state, retrieval_result_keys_and_weights, output_key,
+          identify: :id
+        )
+
+      for {key, _weight} <- retrieval_result_keys_and_weights do
+        refute Map.has_key?(output_rag_state, key)
+      end
+
+      assert Map.fetch!(output_rag_state, output_key) == [
+               %{id: 1, text: "important"},
+               %{id: 0, text: "foo"},
+               %{id: 2, text: "bar"}
+             ]
+    end
+
+    test "takes weight into account" do
+      foo_results = [%{id: 0, text: "something"}, %{id: 1, text: "something else"}]
+      bar_results = [%{id: 0, text: "bar"}, %{id: 1, text: "bar else"}]
+
+      rag_state = %{foo: foo_results, bar: bar_results}
+
+      retrieval_result_keys_and_weights = %{foo: 1, bar: 2}
+      output_key = :rrf_result
+
+      output_rag_state =
+        Retrieval.reciprocal_rank_fusion(rag_state, retrieval_result_keys_and_weights, output_key,
+          identity: [:text]
+        )
+
+      assert Map.fetch!(output_rag_state, output_key) == [
+               %{id: 0, text: "bar"},
+               %{id: 1, text: "bar else"},
+               %{id: 0, text: "something"},
+               %{id: 1, text: "something else"}
+             ]
+    end
+
+    test "overwrites existing results at output_key" do
+      existing_results = [%{id: 0, text: "existing"}]
+      new_results = [%{id: 1001, text: "new result"}]
+      rag_state = %{results: existing_results, new: new_results}
+
+      output_rag_state = Retrieval.reciprocal_rank_fusion(rag_state, %{new: 1}, :results)
+
+      assert Map.fetch!(output_rag_state, :results) == new_results
+    end
+
+    test "errors if one of retrieval_result_keys is not in rag_state" do
+      rag_state = %{text: "hello"}
+
+      assert_raise KeyError, fn ->
+        Retrieval.reciprocal_rank_fusion(rag_state, %{foo: 1}, :results)
+      end
+    end
+
+    test "errors if passed empty list of keys and weights for retrieval results" do
+      rag_state = %{text: "hello"}
+
+      assert_raise ArgumentError, fn ->
+        Retrieval.reciprocal_rank_fusion(rag_state, %{}, :results)
       end
     end
   end
