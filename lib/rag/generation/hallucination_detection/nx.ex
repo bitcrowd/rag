@@ -3,13 +3,18 @@ defmodule Rag.Generation.HallucinationDetection.Nx do
   Functions to detect hallucinations in generated responses using `Nx.Serving.batched_run/2`.
   """
 
+  alias Rag.Generation
+
   @doc """
-  Takes the values of `query`, `response` and `context` from `rag_state` and passes it to `serving` to detect potential hallucinations.
-  Then, puts `hallucination?` in `rag_state`.
+  Takes the values of `query`, `response` and `context` from `generation` and passes it to `serving` to detect potential hallucinations.
+  Then, puts `hallucination?` in `generation`.
   """
-  @spec detect_hallucination(%{response: String.t()}, Nx.Serving.t()) :: %{hallucination?: bool()}
-  def detect_hallucination(rag_state, serving \\ Rag.HallucinationDetectionServing) do
-    %{query: query, response: response, context: context} = rag_state
+  @spec detect_hallucination(Generation.t(), Nx.Serving.t()) :: Generation.t()
+  def detect_hallucination(
+        %Generation{} = generation,
+        serving \\ Rag.HallucinationDetectionServing
+      ) do
+    %{query: query, response: response, context: context} = generation
 
     prompt =
       """
@@ -27,17 +32,16 @@ defmodule Rag.Generation.HallucinationDetection.Nx do
       <|assistant|>
       """
 
-    metadata = %{serving: serving, rag_state: rag_state}
+    metadata = %{serving: serving, generation: generation}
 
-    %{results: [result]} =
-      :telemetry.span([:rag, :detect_hallucination], metadata, fn ->
-        result = Nx.Serving.batched_run(serving, prompt)
+    :telemetry.span([:rag, :detect_hallucination], metadata, fn ->
+      %{results: [result]} = Nx.Serving.batched_run(serving, prompt)
 
-        {result, metadata}
-      end)
+      hallucination? = result.text != "YES"
 
-    hallucination? = result.text != "YES"
+      generation = put_in(generation, [Access.key!(:evaluations), :hallucination], hallucination?)
 
-    Map.put(rag_state, :hallucination?, hallucination?)
+      {generation, %{metadata | generation: generation}}
+    end)
   end
 end

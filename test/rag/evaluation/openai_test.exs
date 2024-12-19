@@ -2,6 +2,7 @@ defmodule Rag.Evaluation.OpenAITest do
   use ExUnit.Case
   use Mimic
 
+  alias Rag.Generation
   alias Rag.Evaluation
 
   describe "evaluate_rag_triad/2" do
@@ -29,7 +30,7 @@ defmodule Rag.Evaluation.OpenAITest do
         }
       end)
 
-      rag_state = %{
+      generation = %Generation{
         query: "What's with this?",
         context: "This is a test",
         response: "It's a test"
@@ -40,45 +41,33 @@ defmodule Rag.Evaluation.OpenAITest do
         api_key: "somekey"
       }
 
-      assert %{
-               evaluation: %{
-                 "answer_relevance_reasoning" => "It is absolutely relevant",
-                 "answer_relevance_score" => 5,
-                 "context_relevance_reasoning" => "It's somewhat relevant",
-                 "context_relevance_score" => 3,
-                 "groundedness_reasoning" => "It's mostly grounded",
-                 "groundedness_score" => 4
+      assert %Generation{
+               evaluations: %{
+                 rag_triad: %{
+                   "answer_relevance_reasoning" => "It is absolutely relevant",
+                   "answer_relevance_score" => 5,
+                   "context_relevance_reasoning" => "It's somewhat relevant",
+                   "context_relevance_score" => 3,
+                   "groundedness_reasoning" => "It's mostly grounded",
+                   "groundedness_score" => 4
+                 }
                }
-             } = Evaluation.OpenAI.evaluate_rag_triad(rag_state, openai_params)
-    end
-
-    test "errors if query, context, or response not in rag_state" do
-      assert_raise MatchError, fn ->
-        Evaluation.OpenAI.evaluate_rag_triad(%{context: "context", response: "response"}, %{})
-      end
-
-      assert_raise MatchError, fn ->
-        Evaluation.OpenAI.evaluate_rag_triad(%{query: "query", response: "response"}, %{})
-      end
-
-      assert_raise MatchError, fn ->
-        Evaluation.OpenAI.evaluate_rag_triad(%{query: "query", context: "context"}, %{})
-      end
+             } = Evaluation.OpenAI.evaluate_rag_triad(generation, openai_params)
     end
 
     test "errors if model or api_key are not passed" do
-      rag_state = %{query: "query", context: "context", response: "response"}
+      generation = %Generation{query: "query", context: "context", response: "response"}
 
       assert_raise MatchError, fn ->
         Evaluation.OpenAI.evaluate_rag_triad(
-          rag_state,
+          generation,
           %{api_key: "hello"}
         )
       end
 
       assert_raise MatchError, fn ->
         Evaluation.OpenAI.evaluate_rag_triad(
-          rag_state,
+          generation,
           %{model: "model"}
         )
       end
@@ -108,7 +97,7 @@ defmodule Rag.Evaluation.OpenAITest do
         }
       end)
 
-      rag_state = %{
+      generation = %Generation{
         query: "What's with this?",
         context: "This is a test",
         response: "It's a test"
@@ -126,7 +115,7 @@ defmodule Rag.Evaluation.OpenAITest do
           [:rag, :evaluate_rag_triad, :exception]
         ])
 
-      Evaluation.OpenAI.evaluate_rag_triad(rag_state, openai_params)
+      Evaluation.OpenAI.evaluate_rag_triad(generation, openai_params)
 
       assert_received {[:rag, :evaluate_rag_triad, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :evaluate_rag_triad, :stop], ^ref, _measurement, _meta}
@@ -134,7 +123,7 @@ defmodule Rag.Evaluation.OpenAITest do
       expect(Req, :post!, fn _url, _params -> raise "boom" end)
 
       assert_raise RuntimeError, fn ->
-        Evaluation.OpenAI.evaluate_rag_triad(rag_state, openai_params)
+        Evaluation.OpenAI.evaluate_rag_triad(generation, openai_params)
       end
 
       assert_received {[:rag, :evaluate_rag_triad, :exception], ^ref, _measurement, _meta}

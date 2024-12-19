@@ -3,42 +3,44 @@ defmodule Rag.Retrieval do
   Functions to transform retrieval results.
   """
 
+  alias Rag.Generation
+
   @doc """
-  Calls `retrieval_function` with `rag_state` as only argument.
-  `retrieval_function` must return the updated `rag_state`.
-  The main purpose of `retrieve/2` is to emit telemetry events.
+  Calls `retrieval_function` with `generation` as only argument.
+  `retrieval_function` must return only the retrieval result.
+  The main purpose of `retrieve/3` is to emit telemetry events.
   """
-  @spec retrieve(map(), (map() -> map())) :: map()
-  def retrieve(rag_state, retrieval_function) do
-    metadata = %{rag_state: rag_state}
+  @spec retrieve(
+          Generation.t(),
+          result_key :: atom(),
+          (Generation.t() -> any())
+        ) :: Generation.t()
+  def retrieve(generation, result_key, retrieval_function) do
+    metadata = %{generation: generation}
 
     :telemetry.span([:rag, :retrieve], metadata, fn ->
-      result = retrieval_function.(rag_state)
+      result = retrieval_function.(generation)
 
-      {result, metadata}
+      generation = Generation.put_retrieval_result(generation, result_key, result)
+
+      {generation, %{metadata | generation: generation}}
     end)
   end
 
   @doc """
-  Pops the retrieval result for each key in `retrieval_result_keys` from `rag_state`.
+  Gets the retrieval result for each key in `retrieval_result_keys` from `generation`.
   Then, appends the retrieval result to the list at `output_key`.
   """
   @spec concatenate_retrieval_results(map(), list(atom()), atom()) :: map()
-  def concatenate_retrieval_results(rag_state, retrieval_result_keys, output_key) do
-    rag_state = Map.put(rag_state, output_key, [])
+  def concatenate_retrieval_results(generation, retrieval_result_keys, output_key) do
+    retrieval_results =
+      Enum.flat_map(retrieval_result_keys, &Generation.get_retrieval_result(generation, &1))
 
-    for retrieval_result_key <- retrieval_result_keys, reduce: rag_state do
-      state ->
-        {retrieval_result, state} = Map.pop!(state, retrieval_result_key)
-
-        Map.update!(state, output_key, fn combined_results ->
-          combined_results ++ retrieval_result
-        end)
-    end
+    Generation.put_retrieval_result(generation, output_key, retrieval_results)
   end
 
   @doc """
-  Pops the retrieval result for each key in `retrieval_result_keys` from `rag_state`.
+  Gets the retrieval result for each key in `retrieval_result_keys` from `retrieval`.
   Then, applies [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) to combine the retrieval results into a single list at `output_key`.
   There is no guaranteed order for results with the same score.
 
@@ -46,31 +48,33 @@ defmodule Rag.Retrieval do
    * `identity`: list of keys which define the identity of a result. Results with same `identity` will be fused.
   """
   @spec reciprocal_rank_fusion(
-          map(),
+          Generation.t(),
           %{(key :: atom()) => weight :: integer()},
-          atom(),
+          output_key :: atom(),
           keyword(list(atom()))
-        ) ::
-          map()
-  def reciprocal_rank_fusion(rag_state, retrieval_result_keys_and_weights, output_key, opts \\ [])
+        ) :: Generation.t()
+  def reciprocal_rank_fusion(
+        generation,
+        retrieval_result_keys_and_weights,
+        output_key,
+        opts \\ []
+      )
 
-  def reciprocal_rank_fusion(_rag_state, retrieval_result_keys_and_weights, _output_key, _opts)
+  def reciprocal_rank_fusion(_generation, retrieval_result_keys_and_weights, _output_key, _opts)
       when map_size(retrieval_result_keys_and_weights) == 0,
       do: raise(ArgumentError, "retrieval_result_keys_and_weights must not be empty")
 
-  def reciprocal_rank_fusion(rag_state, retrieval_result_keys_and_weights, output_key, opts) do
+  def reciprocal_rank_fusion(generation, retrieval_result_keys_and_weights, output_key, opts) do
     identity = Keyword.get(opts, :identity, [:id])
-
-    rag_state = Map.put(rag_state, output_key, [])
 
     # constant 60 comes from original paper
     k = 60
     number_retrievals = Enum.count(retrieval_result_keys_and_weights)
 
-    rrf_results =
+    rrf_result =
       retrieval_result_keys_and_weights
       |> Enum.flat_map(fn {key, weight} ->
-        retrieval_result = Map.fetch!(rag_state, key)
+        retrieval_result = Generation.get_retrieval_result(generation, key)
 
         retrieval_result
         |> rank_results(k, weight)
@@ -80,9 +84,7 @@ defmodule Rag.Retrieval do
       |> Enum.sort_by(& &1.score, :desc)
       |> Enum.map(& &1.result)
 
-    rag_state
-    |> Map.put(output_key, rrf_results)
-    |> Map.drop(Map.keys(retrieval_result_keys_and_weights))
+    Generation.put_retrieval_result(generation, output_key, rrf_result)
   end
 
   defp fuse_with_scores(results, identity) do
@@ -120,18 +122,20 @@ defmodule Rag.Retrieval do
   end
 
   @doc """
-  Deduplicates entries at `entries_key` in `rag_state`.
+  Deduplicates entries at `entries_keys` in `retrieval_results` of `generation`.
   Two entries are considered duplicates if they hold the same value at **all** `unique_by_keys`.
   In case of duplicates, the first entry is kept.
   """
-  @spec deduplicate(map(), atom(), list(atom())) :: map()
-  def deduplicate(rag_state, entries_key, unique_by_keys) do
+  @spec deduplicate(Generation.t(), atom(), list(atom())) :: Generation.t()
+  def deduplicate(generation, entries_key, unique_by_keys) do
     if unique_by_keys == [] do
       raise ArgumentError, "unique_by_keys must not be empty"
     end
 
-    Map.update!(rag_state, entries_key, fn entries ->
-      Enum.uniq_by(entries, &Map.take(&1, unique_by_keys))
-    end)
+    retrieval_result =
+      Map.fetch!(generation.retrieval_results, entries_key)
+      |> Enum.uniq_by(&Map.take(&1, unique_by_keys))
+
+    Generation.put_retrieval_result(generation, entries_key, retrieval_result)
   end
 end

@@ -2,29 +2,30 @@ defmodule Rag.Generation.LangChain do
   @moduledoc """
   Functions to generate responses using `LangChain`. 
   """
+
+  alias Rag.Generation
   alias LangChain.Chains.LLMChain
   alias LangChain.Message
 
   @doc """
-  Passes `prompt` from `rag_state` to an LLM specified by `chain` to generate a response.
-  Then, puts `response` in `rag_state`.
+  Passes `prompt` from `generation` to an LLM specified by `chain` to generate a response.
+  Then, puts `response` in `generation`.
   """
-  @spec generate_response(%{prompt: String.t()}, LLMChain.t()) :: %{response: String.t()}
-  def generate_response(rag_state, chain) do
-    %{prompt: prompt} = rag_state
+  @spec generate_response(Generation.t(), LLMChain.t()) :: Generation.t()
+  def generate_response(%Generation{} = generation, chain) do
+    %{prompt: prompt} = generation
 
-    metadata = %{chain: chain, rag_state: rag_state}
+    metadata = %{chain: chain, generation: generation}
 
-    {:ok, _updated_chain, response} =
-      :telemetry.span([:rag, :generate_response], metadata, fn ->
-        result =
-          chain
-          |> LLMChain.add_message(Message.new_user!(prompt))
-          |> LLMChain.run()
+    :telemetry.span([:rag, :generate_response], metadata, fn ->
+      {:ok, _updated_chain, response} =
+        chain
+        |> LLMChain.add_message(Message.new_user!(prompt))
+        |> LLMChain.run()
 
-        {result, metadata}
-      end)
+      generation = put_in(generation, [Access.key!(:response)], response.content)
 
-    Map.put(rag_state, :response, response.content)
+      {generation, %{metadata | generation: generation}}
+    end)
   end
 end

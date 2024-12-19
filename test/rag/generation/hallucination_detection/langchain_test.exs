@@ -2,6 +2,7 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
   use ExUnit.Case
   use Mimic
 
+  alias Rag.Generation
   alias Rag.Generation.HallucinationDetection
   alias LangChain.Chains.LLMChain
   alias LangChain.ChatModels.ChatOpenAI
@@ -9,7 +10,7 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
   @chain LLMChain.new!(%{llm: ChatOpenAI.new!(%{model: "gpt-4"})})
 
   describe "detect_hallucination/2" do
-    test "sets hallucination? to true if response does not equal \"YES\"" do
+    test "sets evaluation `:hallucination` to true if response does not equal \"YES\"" do
       LLMChain
       |> expect(:add_message, fn chain, message ->
         call_original(LLMChain, :add_message, [chain, message])
@@ -22,9 +23,9 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
       context = "some context"
       response = "this is something completely unrelated"
 
-      assert %{hallucination?: true} =
+      assert %Generation{evaluations: %{hallucination: true}} =
                HallucinationDetection.LangChain.detect_hallucination(
-                 %{
+                 %Generation{
                    query: query,
                    context: context,
                    response: response
@@ -33,7 +34,7 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
                )
     end
 
-    test "sets hallucination? to false if response equals \"YES\"" do
+    test "sets evaluation `:hallucination` to false if response equals \"YES\"" do
       LLMChain
       |> expect(:add_message, fn chain, message ->
         call_original(LLMChain, :add_message, [chain, message])
@@ -46,44 +47,15 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
       context = "some context"
       response = "this is something completely unrelated"
 
-      assert %{hallucination?: false} =
+      assert %Generation{evaluations: %{hallucination: false}} =
                HallucinationDetection.LangChain.detect_hallucination(
-                 %{
+                 %Generation{
                    query: query,
                    context: context,
                    response: response
                  },
                  @chain
                )
-    end
-
-    test "errors if query, context, or response not present" do
-      assert_raise MatchError, fn ->
-        HallucinationDetection.LangChain.detect_hallucination(
-          %{
-            context: "hello",
-            response: "something"
-          },
-          @chain
-        )
-      end
-
-      assert_raise MatchError, fn ->
-        HallucinationDetection.LangChain.detect_hallucination(
-          %{query: "what?", response: "this"},
-          @chain
-        )
-      end
-
-      assert_raise MatchError, fn ->
-        HallucinationDetection.LangChain.detect_hallucination(
-          %{
-            query: "what?",
-            context: "based on this"
-          },
-          @chain
-        )
-      end
     end
 
     test "emits start, stop, and exception telemetry events" do
@@ -99,7 +71,7 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
       context = "some context"
       response = "not relevant in this test"
 
-      rag_state = %{query: query, context: context, response: response}
+      generation = %Generation{query: query, context: context, response: response}
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [
@@ -108,7 +80,7 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
           [:rag, :detect_hallucination, :exception]
         ])
 
-      HallucinationDetection.LangChain.detect_hallucination(rag_state, @chain)
+      HallucinationDetection.LangChain.detect_hallucination(generation, @chain)
 
       assert_received {[:rag, :detect_hallucination, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :detect_hallucination, :stop], ^ref, _measurement, _meta}
@@ -120,7 +92,7 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
       |> expect(:run, fn _chain -> raise "boom" end)
 
       assert_raise RuntimeError, fn ->
-        HallucinationDetection.LangChain.detect_hallucination(rag_state, @chain)
+        HallucinationDetection.LangChain.detect_hallucination(generation, @chain)
       end
 
       assert_received {[:rag, :detect_hallucination, :exception], ^ref, _measurement, _meta}

@@ -3,54 +3,80 @@ defmodule Rag.Embedding.Nx do
   Functions to generate embeddings using `Nx.Serving.batched_run/2`. 
   """
 
+  alias Rag.Generation
+
   @doc """
-  Passes the value of `rag_state` at `source_key` to `serving` to generate an embedding.
-  Then, puts the embedding in `rag_state` at `target_key`.
+  Passes the value of `ingestion` at `text_key` to `serving` to generate an embedding.
+  Then, puts the embedding in `ingestion` at `embedding_key`.
   """
-  @type embedding :: list(number())
-  @spec generate_embedding(map(), Nx.Serving.t(), atom(), atom()) :: %{
-          atom() => embedding(),
-          optional(any) => any
-        }
-  def generate_embedding(rag_state, serving \\ Rag.EmbeddingServing, source_key, target_key) do
-    text = Map.fetch!(rag_state, source_key)
+  @spec generate_embedding(
+          map(),
+          Nx.Serving.t(),
+          text_key :: atom(),
+          embedding_key :: atom()
+        ) :: map()
+  def generate_embedding(ingestion, serving \\ Rag.EmbeddingServing, text_key, embedding_key) do
+    text = Map.fetch!(ingestion, text_key)
 
-    metadata = %{serving: serving, rag_state: rag_state}
+    metadata = %{serving: serving, ingestion: ingestion}
 
-    %{embedding: embedding} =
-      :telemetry.span([:rag, :generate_embedding], metadata, fn ->
-        result = Nx.Serving.batched_run(serving, text)
-        {result, metadata}
-      end)
+    :telemetry.span([:rag, :generate_embedding], metadata, fn ->
+      %{embedding: embedding} = Nx.Serving.batched_run(serving, text)
 
-    Map.put(rag_state, target_key, Nx.to_list(embedding))
+      ingestion = Map.put(ingestion, embedding_key, Nx.to_list(embedding))
+      {ingestion, %{metadata | ingestion: ingestion}}
+    end)
   end
 
   @doc """
-  Passes the values of each element of `rag_state_list` at `source_key` as a batch to `serving` to generate all embeddings at once.
-  Then, puts the embedding in each element of `rag_state_list` at `target_key`.
+  Passes `generation.query` to `serving` to generate an embedding.
+  Then, puts the embedding in `generation.query_embedding`.
   """
-  @spec generate_embeddings_batch(list(map()), Nx.Serving.t(), atom(), atom()) ::
-          list(%{atom() => embedding(), optional(any) => any})
+  @spec generate_embedding(Generation.t(), Nx.Serving.t()) :: Generation.t()
+  def generate_embedding(%Generation{} = generation, serving \\ Rag.EmbeddingServing) do
+    text = generation.query
+
+    metadata = %{serving: serving, generation: generation}
+
+    :telemetry.span([:rag, :generate_embedding], metadata, fn ->
+      %{embedding: embedding} = Nx.Serving.batched_run(serving, text)
+
+      generation = %{generation | query_embedding: Nx.to_list(embedding)}
+
+      {generation, %{metadata | generation: generation}}
+    end)
+  end
+
+  @doc """
+  Passes all values of `ingestions` at `text_key` to `serving` to generate all embeddings in a single batch.
+  Puts the embeddings in `ingestions` at `embedding_key`.
+  """
+  @spec generate_embeddings_batch(
+          list(map()),
+          Nx.Serving.t(),
+          text_key :: atom(),
+          embedding_key :: atom()
+        ) :: list(map())
   def generate_embeddings_batch(
-        rag_state_list,
+        ingestions,
         serving \\ Rag.EmbeddingServing,
-        source_key,
-        target_key
-      ) do
-    texts = Enum.map(rag_state_list, &Map.fetch!(&1, source_key))
+        text_key,
+        embedding_key
+      )
+      when is_list(ingestions) do
+    texts = Enum.map(ingestions, &Map.fetch!(&1, text_key))
 
-    metadata = %{serving: serving, rag_state_list: rag_state_list}
+    metadata = %{serving: serving, ingestions: ingestions}
 
-    embeddings =
-      :telemetry.span([:rag, :generate_embeddings_batch], metadata, fn ->
-        result = Nx.Serving.batched_run(serving, texts)
-        {result, metadata}
-      end)
+    :telemetry.span([:rag, :generate_embeddings_batch], metadata, fn ->
+      embeddings = Nx.Serving.batched_run(serving, texts)
 
-    Enum.zip(rag_state_list, embeddings)
-    |> Enum.map(fn {rag_state, embedding} ->
-      Map.put(rag_state, target_key, Nx.to_list(embedding.embedding))
+      ingestions =
+        Enum.zip_with(ingestions, embeddings, fn ingestion, embedding ->
+          Map.put(ingestion, embedding_key, Nx.to_list(embedding.embedding))
+        end)
+
+      {ingestions, %{metadata | ingestions: ingestions}}
     end)
   end
 end

@@ -22,15 +22,10 @@ defmodule Rag.Generation.LangChainTest do
 
       prompt = "a prompt"
 
-      rag_state = %{prompt: prompt}
+      generation = %Generation{query: "query", prompt: prompt}
 
-      assert %{response: "a response"} = Generation.LangChain.generate_response(rag_state, @chain)
-    end
-
-    test "errors if prompt not present" do
-      assert_raise MatchError, fn ->
-        Generation.LangChain.generate_response(%{}, @chain)
-      end
+      assert %{response: "a response"} =
+               Generation.LangChain.generate_response(generation, @chain)
     end
 
     test "emits start, stop, and exception telemetry events" do
@@ -46,7 +41,7 @@ defmodule Rag.Generation.LangChainTest do
 
       prompt = "a prompt"
 
-      rag_state = %{prompt: prompt}
+      generation = %Generation{query: "query", prompt: prompt}
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [
@@ -55,7 +50,7 @@ defmodule Rag.Generation.LangChainTest do
           [:rag, :generate_response, :exception]
         ])
 
-      Generation.LangChain.generate_response(rag_state, @chain)
+      Generation.LangChain.generate_response(generation, @chain)
 
       assert_received {[:rag, :generate_response, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :generate_response, :stop], ^ref, _measurement, _meta}
@@ -71,7 +66,7 @@ defmodule Rag.Generation.LangChainTest do
       end)
 
       assert_raise RuntimeError, fn ->
-        Generation.LangChain.generate_response(rag_state, @chain)
+        Generation.LangChain.generate_response(generation, @chain)
       end
 
       assert_received {[:rag, :generate_response, :exception], ^ref, _measurement, _meta}

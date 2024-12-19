@@ -12,16 +12,17 @@ defmodule Rag.Generation.NxTest do
         %{results: [%{text: "a response"}]}
       end)
 
+      query = "a query"
       prompt = "a prompt"
 
-      rag_state = %{prompt: prompt}
+      generation = %Generation{query: query, prompt: prompt}
 
-      assert %{response: "a response"} = Generation.Nx.generate_response(rag_state, TestServing)
+      assert %{response: "a response"} = Generation.Nx.generate_response(generation, TestServing)
     end
 
     test "errors if prompt not present" do
-      assert_raise MatchError, fn ->
-        Generation.Nx.generate_response(%{})
+      assert_raise ArgumentError, fn ->
+        Generation.Nx.generate_response(%Generation{query: "a query"})
       end
     end
 
@@ -32,9 +33,10 @@ defmodule Rag.Generation.NxTest do
         %{results: [%{text: "a response"}]}
       end)
 
+      query = "a query"
       prompt = "a prompt"
 
-      rag_state = %{prompt: prompt}
+      generation = %Generation{query: query, prompt: prompt}
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [
@@ -43,14 +45,16 @@ defmodule Rag.Generation.NxTest do
           [:rag, :generate_response, :exception]
         ])
 
-      Generation.Nx.generate_response(rag_state, TestServing)
+      Generation.Nx.generate_response(generation, TestServing)
 
       assert_received {[:rag, :generate_response, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :generate_response, :stop], ^ref, _measurement, _meta}
 
       expect(Nx.Serving, :batched_run, fn _serving, _prompt -> raise "boom" end)
 
-      assert_raise RuntimeError, fn -> Generation.Nx.generate_response(rag_state, TestServing) end
+      assert_raise RuntimeError, fn ->
+        Generation.Nx.generate_response(generation, TestServing)
+      end
 
       assert_received {[:rag, :generate_response, :exception], ^ref, _measurement, _meta}
     end

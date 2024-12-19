@@ -2,6 +2,7 @@ defmodule Rag.Evaluation.OpenAI do
   @moduledoc """
   Evaluation for RAG systems using the OpenAI API.
   """
+  alias Rag.Generation
 
   @structured_outputs_url "https://api.openai.com/v1/chat/completions"
 
@@ -13,8 +14,8 @@ defmodule Rag.Evaluation.OpenAI do
 
   Prompts from https://github.com/truera/trulens/blob/main/src/feedback/trulens/feedback/prompts.py
   """
-  def evaluate_rag_triad(rag_state, openai_params) do
-    %{response: response, query: query, context: context} = rag_state
+  def evaluate_rag_triad(%Generation{} = generation, openai_params) do
+    %{response: response, query: query, context: context} = generation
 
     %{model: model, api_key: api_key} = openai_params
 
@@ -50,7 +51,7 @@ defmodule Rag.Evaluation.OpenAI do
     metadata = %{
       structed_outputs_url: @structured_outputs_url,
       model: model,
-      rag_state: rag_state
+      generation: generation
     }
 
     system_prompt =
@@ -94,30 +95,29 @@ defmodule Rag.Evaluation.OpenAI do
     Score 5: The response is completely relevant to the query.
     """
 
-    evaluation =
-      :telemetry.span([:rag, :evaluate_rag_triad], metadata, fn ->
-        response =
-          Req.post!(@structured_outputs_url,
-            auth: {:bearer, api_key},
-            json: %{
-              model: model,
-              messages: [
-                %{role: :system, content: system_prompt},
-                %{role: :user, content: user_prompt}
-              ],
-              response_format: response_format
-            }
-          )
+    :telemetry.span([:rag, :evaluate_rag_triad], metadata, fn ->
+      response =
+        Req.post!(@structured_outputs_url,
+          auth: {:bearer, api_key},
+          json: %{
+            model: model,
+            messages: [
+              %{role: :system, content: system_prompt},
+              %{role: :user, content: user_prompt}
+            ],
+            response_format: response_format
+          }
+        )
 
-        [result] = response.body["choices"]
+      [result] = response.body["choices"]
 
-        result = get_in(result, ["message", "content"])
+      %{"message" => %{"content" => evaluation_json}} = result
 
-        evaluation = Jason.decode!(result)
+      evaluation = Jason.decode!(evaluation_json)
 
-        {evaluation, metadata}
-      end)
+      generation = put_in(generation, [Access.key!(:evaluations), :rag_triad], evaluation)
 
-    Map.put(rag_state, :evaluation, evaluation)
+      {generation, %{metadata | generation: generation}}
+    end)
   end
 end

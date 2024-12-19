@@ -6,81 +6,105 @@ defmodule Rag.Embedding.OpenAI do
   @embeddings_url "https://api.openai.com/v1/embeddings"
 
   @doc """
-  Passes the value of `rag_state` at `source_key` to the OpenAI API to generate an embedding.
-  Then, puts the embedding in `rag_state` at `target_key`.
+  Passes the value of `ingestion` at `text_key` to the OpenAI API to generate an embedding.
+  Then, puts the embedding in `ingestion` at `embedding_key`.
   """
   @type embedding :: list(number())
   @spec generate_embedding(
           map(),
           %{model: String.t(), api_key: String.t()},
-          atom(),
-          atom()
+          text_key :: atom(),
+          embedding_key :: atom()
         ) :: %{
           atom() => embedding(),
           optional(any) => any
         }
-  def generate_embedding(rag_state, openai_params, source_key, target_key) do
-    text = Map.fetch!(rag_state, source_key)
+  def generate_embedding(ingestion, openai_params, text_key, embedding_key) do
+    text = Map.fetch!(ingestion, text_key)
 
     %{model: model, api_key: api_key} = openai_params
 
-    metadata = %{embeddings_url: @embeddings_url, model: model, rag_state: rag_state}
+    metadata = %{embeddings_url: @embeddings_url, model: model, ingestion: ingestion}
 
-    [result] =
-      :telemetry.span([:rag, :generate_embedding], metadata, fn ->
-        result =
-          Req.post!(@embeddings_url,
-            auth: {:bearer, api_key},
-            json: %{model: model, input: text}
-          ).body["data"]
+    :telemetry.span([:rag, :generate_embedding], metadata, fn ->
+      [result] =
+        Req.post!(@embeddings_url,
+          auth: {:bearer, api_key},
+          json: %{model: model, input: text}
+        ).body["data"]
 
-        {result, metadata}
-      end)
+      embedding = result["embedding"]
 
-    embedding = result["embedding"]
-
-    Map.put(rag_state, target_key, embedding)
+      ingestion = Map.put(ingestion, embedding_key, embedding)
+      {ingestion, %{metadata | ingestion: ingestion}}
+    end)
   end
 
   @doc """
-  Passes the values of each element of `rag_state_list` at `source_key` as a batch to the OpenAI API to generate all embeddings at once.
-  Then, puts the embedding in each element of `rag_state_list` at `target_key`.
+  Passes `generation.query` to the OpenAI API to generate an embedding.
+  Then, puts the embedding in `generation.query_embedding`.
+  """
+  @spec generate_embedding(Generation.t(), %{model: String.t(), api_key: String.t()}) ::
+          Generation.t()
+  def generate_embedding(generation, openai_params) do
+    text = generation.query
+
+    %{model: model, api_key: api_key} = openai_params
+
+    metadata = %{embeddings_url: @embeddings_url, model: model, generation: generation}
+
+    :telemetry.span([:rag, :generate_embedding], metadata, fn ->
+      [result] =
+        Req.post!(@embeddings_url,
+          auth: {:bearer, api_key},
+          json: %{model: model, input: text}
+        ).body["data"]
+
+      embedding = result["embedding"]
+
+      generation = %{generation | query_embedding: embedding}
+
+      {generation, %{metadata | generation: generation}}
+    end)
+  end
+
+  @doc """
+  Passes all values of `ingestions` at `text_key` to the OpenAI API to generate all embeddings in a single batch.
+  Puts the embeddings in `ingestions` at `embedding_key`.
   """
   @spec generate_embeddings_batch(
           list(map()),
           %{model: String.t(), api_key: String.t()},
-          atom(),
-          atom()
-        ) ::
-          list(%{atom() => embedding(), optional(any) => any})
+          text_key :: atom(),
+          embedding_key :: atom()
+        ) :: list(%{atom() => embedding(), optional(any) => any})
   def generate_embeddings_batch(
-        rag_state_list,
+        ingestions,
         openai_params,
-        source_key,
-        target_key
+        text_key,
+        embedding_key
       ) do
-    texts = Enum.map(rag_state_list, &Map.fetch!(&1, source_key))
+    texts = Enum.map(ingestions, &Map.fetch!(&1, text_key))
 
     %{model: model, api_key: api_key} = openai_params
 
-    metadata = %{embeddings_url: @embeddings_url, model: model, rag_state_list: rag_state_list}
+    metadata = %{embeddings_url: @embeddings_url, model: model, ingestions: ingestions}
 
-    results =
-      :telemetry.span([:rag, :generate_embeddings_batch], metadata, fn ->
-        result =
-          Req.post!(@embeddings_url,
-            auth: {:bearer, api_key},
-            json: %{model: model, input: texts}
-          ).body["data"]
+    :telemetry.span([:rag, :generate_embeddings_batch], metadata, fn ->
+      results =
+        Req.post!(@embeddings_url,
+          auth: {:bearer, api_key},
+          json: %{model: model, input: texts}
+        ).body["data"]
 
-        {result, metadata}
-      end)
+      embeddings = Enum.map(results, &Map.fetch!(&1, "embedding"))
 
-    embeddings = Enum.map(results, &Map.fetch!(&1, "embedding"))
+      ingestions =
+        Enum.zip_with(ingestions, embeddings, fn ingestion, embedding ->
+          Map.put(ingestion, embedding_key, embedding)
+        end)
 
-    Enum.zip(rag_state_list, embeddings)
-    |> Enum.map(fn {rag_state, embedding} ->
-      Map.put(rag_state, target_key, embedding)
+      {ingestions, %{metadata | ingestions: ingestions}}
     end)
   end
 end

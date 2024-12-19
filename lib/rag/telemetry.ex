@@ -18,7 +18,10 @@ defmodule Rag.Telemetry do
     [:rag, :retrieve, :stop],
     [:rag, :detect_hallucination, :start],
     [:rag, :detect_hallucination, :exception],
-    [:rag, :detect_hallucination, :stop]
+    [:rag, :detect_hallucination, :stop],
+    [:rag, :evaluate_rag_triad, :start],
+    [:rag, :evaluate_rag_triad, :exception],
+    [:rag, :evaluate_rag_triad, :stop]
   ]
 
   @doc """

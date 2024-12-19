@@ -5,50 +5,51 @@ defmodule Rag.Embedding.OpenAITest do
   alias Rag.Embedding
 
   describe "generate_embedding/4" do
-    test "takes a string at source_key and returns rag_state map with a list of numbers at target_key" do
+    test "takes a string at text_key and returns map with a list of numbers at embedding_key" do
       expect(Req, :post!, fn _url, _params ->
         %{body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}
       end)
 
-      rag_state = %{text: "hello"}
+      ingestion = %{text: "hello"}
 
       openai_params = %{
         model: "text-embedding-3-small",
         api_key: "somekey"
       }
 
-      assert Embedding.OpenAI.generate_embedding(rag_state, openai_params, :text, :output) == %{
-               text: "hello",
-               output: [1, 2, 3]
-             }
+      assert Embedding.OpenAI.generate_embedding(ingestion, openai_params, :text, :embedding) ==
+               %{
+                 text: "hello",
+                 embedding: [1, 2, 3]
+               }
     end
 
-    test "errors if source_key is not in rag_state" do
-      rag_state = %{text: "hello"}
+    test "errors if text_key is not in ingestion" do
+      ingestion = %{text: "hello"}
 
       assert_raise KeyError, fn ->
-        Embedding.OpenAI.generate_embedding(rag_state, %{}, :non_existing_key, :output)
+        Embedding.OpenAI.generate_embedding(ingestion, %{}, :non_existing_key, :embedding)
       end
     end
 
     test "errors if model or api_key are not passed" do
-      rag_state = %{text: "hello"}
+      ingestion = %{text: "hello"}
 
       assert_raise KeyError, fn ->
         Embedding.OpenAI.generate_embedding(
-          rag_state,
+          ingestion,
           %{api_key: "hello"},
           :non_existing_key,
-          :output
+          :embedding
         )
       end
 
       assert_raise KeyError, fn ->
         Embedding.OpenAI.generate_embedding(
-          rag_state,
+          ingestion,
           %{model: "embeddingsmodel"},
           :non_existing_key,
-          :output
+          :embedding
         )
       end
     end
@@ -58,7 +59,7 @@ defmodule Rag.Embedding.OpenAITest do
         %{body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}
       end)
 
-      rag_state = %{text: "hello"}
+      ingestion = %{text: "hello"}
 
       openai_params = %{
         model: "text-embedding-3-small",
@@ -72,7 +73,7 @@ defmodule Rag.Embedding.OpenAITest do
           [:rag, :generate_embedding, :exception]
         ])
 
-      Embedding.OpenAI.generate_embedding(rag_state, openai_params, :text, :output)
+      Embedding.OpenAI.generate_embedding(ingestion, openai_params, :text, :embedding)
 
       assert_received {[:rag, :generate_embedding, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :generate_embedding, :stop], ^ref, _measurement, _meta}
@@ -80,7 +81,7 @@ defmodule Rag.Embedding.OpenAITest do
       expect(Req, :post!, fn _url, _params -> raise "boom" end)
 
       assert_raise RuntimeError, fn ->
-        Embedding.OpenAI.generate_embedding(rag_state, openai_params, :text, :output)
+        Embedding.OpenAI.generate_embedding(ingestion, openai_params, :text, :embedding)
       end
 
       assert_received {[:rag, :generate_embedding, :exception], ^ref, _measurement, _meta}
@@ -88,7 +89,7 @@ defmodule Rag.Embedding.OpenAITest do
   end
 
   describe "generate_embeddings_batch/4" do
-    test "takes a string at source_key and returns rag_state map with a list of numbers at target_key" do
+    test "takes a string at text_key and returns ingestion map with a list of numbers at embedding_key" do
       expect(Req, :post!, fn _url, _params ->
         %{body: %{"data" => [%{"embedding" => [1, 2, 3]}, %{"embedding" => [4, 5, 6]}]}}
       end)
@@ -98,48 +99,51 @@ defmodule Rag.Embedding.OpenAITest do
         api_key: "apikey"
       }
 
-      rag_state_list = [%{text: "hello"}, %{text: "hello again"}]
+      ingestion_list = [%{text: "hello"}, %{text: "hello again"}]
 
-      assert [%{text: "hello", output: [1, 2, 3]}, %{text: "hello again", output: [4, 5, 6]}] ==
+      assert [
+               %{text: "hello", embedding: [1, 2, 3]},
+               %{text: "hello again", embedding: [4, 5, 6]}
+             ] ==
                Embedding.OpenAI.generate_embeddings_batch(
-                 rag_state_list,
+                 ingestion_list,
                  openai_params,
                  :text,
-                 :output
+                 :embedding
                )
     end
 
-    test "errors if source_key is not in rag_state" do
-      rag_state_list = [%{text: "hello"}]
+    test "errors if text_key is not in ingestion" do
+      ingestion_list = [%{text: "hello"}]
 
       assert_raise KeyError, fn ->
         Embedding.OpenAI.generate_embeddings_batch(
-          rag_state_list,
+          ingestion_list,
           %{},
           :non_existing_key,
-          :output
+          :embedding
         )
       end
     end
 
     test "errors if model or api_key are not passed" do
-      rag_state = %{text: "hello"}
+      ingestion = %{text: "hello"}
 
       assert_raise KeyError, fn ->
         Embedding.OpenAI.generate_embedding(
-          rag_state,
+          ingestion,
           %{api_key: "hello"},
           :non_existing_key,
-          :output
+          :embedding
         )
       end
 
       assert_raise KeyError, fn ->
         Embedding.OpenAI.generate_embedding(
-          rag_state,
+          ingestion,
           %{model: "embeddingsmodel"},
           :non_existing_key,
-          :output
+          :embedding
         )
       end
     end
@@ -154,7 +158,7 @@ defmodule Rag.Embedding.OpenAITest do
         api_key: "apikey"
       }
 
-      rag_state_list = [%{text: "hello"}, %{text: "hello again"}]
+      ingestion_list = [%{text: "hello"}, %{text: "hello again"}]
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [
@@ -164,10 +168,10 @@ defmodule Rag.Embedding.OpenAITest do
         ])
 
       Embedding.OpenAI.generate_embeddings_batch(
-        rag_state_list,
+        ingestion_list,
         openai_params,
         :text,
-        :output
+        :embedding
       )
 
       assert_received {[:rag, :generate_embeddings_batch, :start], ^ref, _measurement, _meta}
@@ -177,10 +181,10 @@ defmodule Rag.Embedding.OpenAITest do
 
       assert_raise RuntimeError, fn ->
         Embedding.OpenAI.generate_embeddings_batch(
-          rag_state_list,
+          ingestion_list,
           openai_params,
           :text,
-          :output
+          :embedding
         )
       end
 

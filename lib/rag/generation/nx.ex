@@ -3,23 +3,28 @@ defmodule Rag.Generation.Nx do
   Functions to generate responses using `Nx.Serving.batched_run/2`. 
   """
 
+  alias Rag.Generation
+
   @doc """
-  Passes `prompt` from `rag_state` to `serving` to generate a response.
-  Then, puts `response` in `rag_state`.
+  Passes `prompt` from `generation` to `serving` to generate a response.
+  Then, puts `response` in `generation`.
   """
-  @spec generate_response(%{prompt: String.t()}, Nx.Serving.t()) :: %{response: String.t()}
-  def generate_response(rag_state, serving \\ Rag.LLMServing) do
-    %{prompt: prompt} = rag_state
+  @spec generate_response(Generation.t(), Nx.Serving.t()) :: Generation.t()
+  def generate_response(generation, serving \\ Rag.LLMServing)
 
-    metadata = %{serving: serving, rag_state: rag_state}
+  def generate_response(%Generation{prompt: nil}, _serving),
+    do: raise(ArgumentError, message: "prompt must not be nil")
 
-    %{results: [result]} =
-      :telemetry.span([:rag, :generate_response], metadata, fn ->
-        result = Nx.Serving.batched_run(serving, prompt)
+  def generate_response(%Generation{prompt: prompt} = generation, serving)
+      when is_binary(prompt) do
+    metadata = %{serving: serving, generation: generation}
 
-        {result, metadata}
-      end)
+    :telemetry.span([:rag, :generate_response], metadata, fn ->
+      %{results: [result]} = Nx.Serving.batched_run(serving, prompt)
 
-    Map.put(rag_state, :response, result.text)
+      generation = %{generation | response: result.text}
+
+      {generation, %{metadata | generation: generation}}
+    end)
   end
 end

@@ -4,23 +4,23 @@ defmodule Rag.Loading do
   """
 
   @doc """
-  Reads the file from the filepath at `source` in `rag_state` and puts it in `rag_state` at `document`.
+  Reads the file from the filepath at `source` in `ingestion` and puts it in `ingestion` at `document`.
   """
-  @spec load_file(%{source: String.t()}) :: %{source: String.t(), document: String.t()}
-  def load_file(rag_state) do
-    %{source: file} = rag_state
-    Map.put(rag_state, :document, File.read!(file))
+  @spec load_file(map()) :: map()
+  def load_file(ingestion) do
+    %{source: file} = ingestion
+    Map.put(ingestion, :document, File.read!(file))
   end
 
   @doc """
-  Chunks the content at `document` in `rag_state` using `TextChunker.split/2`.
-  Returns a list with the chunk stored in `chunk` in `rag_state` for each of the chunks.
+  Chunks the content at `document` in `ingestion` using `TextChunker.split/2`.
+  Returns a list with the chunk stored in `chunk` in `ingestion` for each of the chunks.
   """
-  @spec chunk_text(%{document: String.t()}) :: %{document: String.t(), chunk: String.t()}
-  def chunk_text(rag_state, opts \\ []) do
-    %{document: text} = rag_state
+  @spec chunk_text(map(), keyword()) :: map()
+  def chunk_text(ingestion, opts \\ []) do
+    %{document: text} = ingestion.data
     chunks = TextChunker.split(text, opts)
 
-    for chunk <- chunks, do: Map.put(rag_state, :chunk, chunk.text)
+    Enum.map(chunks, &Map.put(ingestion, :chunk, &1.text))
   end
 end
