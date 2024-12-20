@@ -29,25 +29,16 @@ defmodule Rag.MixProject do
   defp deps do
     [
       {:jason, "~> 1.4"},
+      {:req, "~> 0.5.0"},
       {:telemetry, "~> 1.0"},
+      {:text_chunker, "~> 0.3.1"},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:igniter, "~> 0.4", runtime: false},
       {:mimic, "~> 1.10", only: :test},
-      {:req, "~> 0.5.0"},
-      {:ecto, "~> 3.12", optional: true},
-      {:ecto_sql, "~> 3.12", optional: true},
-      {:ecto_sqlite3, ">= 0.0.0", optional: true},
-      {:pgvector, "~> 0.3.0", optional: true},
-      {:chroma, "~> 0.1.3", optional: true},
-      {:sqlite_vec, "~> 0.1.0", optional: true},
-      {:bumblebee,
-       github: "joelpaulkoch/bumblebee", branch: "jina-embeddings-v2", optional: true},
       {:langchain, "~> 0.3.0-rc.0", optional: true},
-      {:text_chunker, "~> 0.3.1"},
       {:nx, "~> 0.9.0", optional: true},
-      {:exla, "~> 0.9.1", optional: true},
-      {:axon, "~> 0.7.0", optional: true}
+      {:exla, "~> 0.9.1", optional: true}
     ]
   end
 
