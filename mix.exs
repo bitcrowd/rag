@@ -11,7 +11,6 @@ defmodule Rag.MixProject do
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      name: "Rag",
       package: package(),
       docs: docs(),
       description: "A library to make building performant RAG systems in Elixir easy",
@@ -44,9 +43,8 @@ defmodule Rag.MixProject do
 
   defp package do
     [
-      maintainers: ["Joel Koch"],
+      maintainers: ["@bitcrowd", "Joel Koch"],
       licenses: ["MIT"],
-      files: ~w(lib mix.exs README.md LICENSE),
       links: %{
         GitHub: @source_url
       }
