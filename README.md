@@ -23,4 +23,4 @@ Currently supported options for `<vector_store>`:
 
 Brought to you by [bitcrowd](https://bitcrowd.net/en).
 
-![Light](https://github.com/user-attachments/assets/2b38d776-82dd-4dfb-983d-aebb1127a0df)
+![bitcrowd logo](https://github.com/bitcrowd/rag/blob/main/.github/images/bitcrowd_logo.png?raw=true "bitcrowd logo")
