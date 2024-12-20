@@ -17,8 +17,8 @@ defmodule Rag.Loading do
   Returns a list with the chunk stored in `chunk` in `ingestion` for each of the chunks.
   """
   @spec chunk_text(map(), keyword()) :: map()
-  def chunk_text(ingestion, opts \\ []) do
-    %{document: text} = ingestion.data
+  def chunk_text(ingestion, text_key, opts \\ []) do
+    text = Map.fetch!(ingestion, text_key)
     chunks = TextChunker.split(text, opts)
 
     Enum.map(chunks, &Map.put(ingestion, :chunk, &1.text))
