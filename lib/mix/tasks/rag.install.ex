@@ -56,7 +56,8 @@ defmodule Mix.Tasks.Rag.Install do
 
     igniter =
       igniter
-      |> Igniter.Project.Deps.add_dep({:langchain, "~> 0.3.0-rc.0"})
+      |> Igniter.Project.Deps.add_dep({:igniter, "~> 0.4.8"})
+      |> Igniter.Project.Deps.add_dep({:langchain, "~> 0.3.0-rc.1"})
       |> Igniter.Project.Deps.add_dep({:text_chunker, "~> 0.3.1"})
       |> Igniter.Project.Deps.add_dep({:bumblebee, "~> 0.6.0"})
       |> Igniter.Project.Deps.add_dep({:axon, "~> 0.7.0"})
@@ -64,16 +65,19 @@ defmodule Mix.Tasks.Rag.Install do
       |> Igniter.Project.Deps.add_dep({:nx, "~> 0.9.0"})
       |> Igniter.Project.Config.configure("config.exs", :nx, [:default_backend], EXLA.Backend)
 
-    case vector_store do
-      "pgvector" ->
-        with_pgvector(igniter)
+    igniter =
+      case vector_store do
+        "pgvector" ->
+          with_pgvector(igniter)
 
-      "chroma" ->
-        with_chroma(igniter)
+        "chroma" ->
+          with_chroma(igniter)
 
-      _other ->
-        raise "Only pgvector and chroma are supported. Run `mix rag.install pgvector` or `mix rag.install chroma`"
-    end
+        _other ->
+          raise "Only pgvector and chroma are supported. Run `mix rag.install pgvector` or `mix rag.install chroma`"
+      end
+
+    add_eval(igniter)
   end
 
   defp with_chroma(igniter) do
@@ -278,6 +282,7 @@ defmodule Mix.Tasks.Rag.Install do
       |> Macro.camelize()
 
     rag_module = Module.concat(root_module, "Rag")
+
     repo_module = Module.concat(root_module, "Repo")
     schema_module = Module.concat(root_module, "Rag.Chunk")
 
@@ -333,7 +338,7 @@ defmodule Mix.Tasks.Rag.Install do
 
         context =
           Rag.Generation.get_retrieval_result(generation, :rrf_result)
-          |> Enum.map_join("\n\n", & &1.document)
+          |> Enum.map_join("\\n\\n", & &1.document)
 
         context_sources =
           Rag.Generation.get_retrieval_result(generation, :rrf_result)
@@ -518,6 +523,78 @@ defmodule Mix.Tasks.Rag.Install do
         \"""
       end
 
+      """
+    )
+  end
+
+  defp add_eval(igniter) do
+    app_name = Igniter.Project.Application.app_name(igniter)
+
+    root_module =
+      app_name
+      |> to_string()
+      |> Macro.camelize()
+
+    rag_module = Module.concat(root_module, "Rag")
+
+    igniter
+    |> Igniter.Project.Config.configure(
+      "config.exs",
+      app_name,
+      [:openai_key],
+      "your openai API key"
+    )
+    |> Igniter.include_or_create_file(
+      "eval/rag_triad_eval.exs",
+      """
+      openai_key = Application.compile_env(#{inspect(app_name)}, :openai_key)
+      dataset = "https://huggingface.co/datasets/explodinggradients/amnesty_qa/resolve/main/english.json"
+
+      IO.puts("downloading dataset")
+
+      data =
+        Req.get!(dataset).body
+        |> Jason.decode!()
+
+      IO.puts("indexing")
+
+      data["contexts"]
+        |> Enum.map(&Enum.join(&1, " "))
+        |> Enum.with_index(fn context, index -> %{document: context, source: \"\#{index}\"} end)
+        |> #{inspect(rag_module)}.index()
+
+      IO.puts("generating responses")
+
+      generations = for question <- data["question"] do
+        #{inspect(rag_module)}.query(question)
+      end
+
+      openai_params = %{
+        model: "gpt-4o-mini",
+        api_key: openai_key
+      }
+
+      IO.puts("evaluating")
+
+      generations =
+        for generation <- generations do
+          Rag.Evaluation.OpenAI.evaluate_rag_triad(generation, openai_params)
+        end
+
+      json = generations |> Enum.map(& &1.evaluations) |> Jason.encode!()
+
+      File.write!(Path.join(__DIR__, "triad_eval.json"), json)
+
+      average_rag_triad_scores = Enum.map(generations, 
+        fn gen -> 
+          %{evaluations: %{"context_relevance_score" => context_relevance_score, "groundedness_score" => groundedness_score, "answer_relevance_score" => answer_relevance_score}} = gen
+
+          (context_relevance_score + groundedness_score + answer_relevance_score) / 3
+        end)
+
+      total_average_score = Enum.sum(average_rag_triad_scores) / Enum.count(average_rag_triad_scores)
+
+      IO.puts("Score: \#{total_average_score}")
       """
     )
   end
