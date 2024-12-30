@@ -18,12 +18,13 @@ defmodule Rag.Generation.LangChain do
     metadata = %{chain: chain, generation: generation}
 
     :telemetry.span([:rag, :generate_response], metadata, fn ->
-      {:ok, _updated_chain, response} =
+      {:ok, updated_chain} =
         chain
         |> LLMChain.add_message(Message.new_user!(prompt))
         |> LLMChain.run()
 
-      generation = put_in(generation, [Access.key!(:response)], response.content)
+      generation =
+        put_in(generation, [Access.key!(:response)], updated_chain.last_message.content)
 
       {generation, %{metadata | generation: generation}}
     end)

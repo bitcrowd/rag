@@ -16,7 +16,7 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
         call_original(LLMChain, :add_message, [chain, message])
       end)
       |> expect(:run, fn chain ->
-        {:ok, chain, %{content: "NO way"}}
+        {:ok, %{chain | last_message: %LangChain.Message{content: "NO way", role: :assistant}}}
       end)
 
       query = "an important query"
@@ -40,7 +40,7 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
         call_original(LLMChain, :add_message, [chain, message])
       end)
       |> expect(:run, fn chain ->
-        {:ok, chain, %{content: "YES"}}
+        {:ok, %{chain | last_message: %LangChain.Message{content: "YES", role: :assistant}}}
       end)
 
       query = "an important query"
@@ -64,7 +64,14 @@ defmodule Rag.Generation.HallucinationDetection.LangChainTest do
         call_original(LLMChain, :add_message, [chain, message])
       end)
       |> expect(:run, fn chain ->
-        {:ok, chain, %{content: "not relevant in this test"}}
+        {:ok,
+         %{
+           chain
+           | last_message: %LangChain.Message{
+               content: "not relevant in this test",
+               role: :assistant
+             }
+         }}
       end)
 
       query = "an important query"

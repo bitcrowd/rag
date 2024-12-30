@@ -17,7 +17,8 @@ defmodule Rag.Generation.LangChainTest do
         call_original(LLMChain, :add_message, [chain, message])
       end)
       |> expect(:run, fn chain ->
-        {:ok, chain, %{content: "a response"}}
+        {:ok,
+         %{chain | last_message: %LangChain.Message{content: "a response", role: :assistant}}}
       end)
 
       prompt = "a prompt"
@@ -36,7 +37,8 @@ defmodule Rag.Generation.LangChainTest do
         call_original(LLMChain, :add_message, [chain, message])
       end)
       |> expect(:run, fn chain ->
-        {:ok, chain, %{content: "a response"}}
+        {:ok,
+         %{chain | last_message: %LangChain.Message{content: "a response", role: :assistant}}}
       end)
 
       prompt = "a prompt"

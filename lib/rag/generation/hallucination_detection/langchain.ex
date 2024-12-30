@@ -30,12 +30,12 @@ defmodule Rag.Generation.HallucinationDetection.LangChain do
     metadata = %{chain: chain, generation: generation}
 
     :telemetry.span([:rag, :detect_hallucination], metadata, fn ->
-      {:ok, _updated_chain, response} =
+      {:ok, updated_chain} =
         chain
         |> LLMChain.add_message(Message.new_user!(prompt))
         |> LLMChain.run()
 
-      hallucination? = response.content != "YES"
+      hallucination? = updated_chain.last_message.content != "YES"
 
       generation = put_in(generation, [Access.key!(:evaluations), :hallucination], hallucination?)
 
