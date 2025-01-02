@@ -15,7 +15,7 @@ def deps do
 end
 ```
 
-Then, run `mix rag.install <vector_store>` to install required dependencies and generate a RAG system that you can further customize to your needs.
+Then, run `mix rag.install --vector-store <vector_store>` to install required dependencies and generate a RAG system that you can further customize to your needs.
 
 Currently supported options for `<vector_store>`:
 - `pgvector`
