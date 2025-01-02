@@ -35,7 +35,6 @@ defmodule Rag.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:igniter, "~> 0.4", runtime: false},
       {:mimic, "~> 1.11", only: :test},
-      {:langchain, "~> 0.3.0-rc.1", optional: true},
       {:nx, "~> 0.9.0", optional: true},
       {:exla, "~> 0.9.1", optional: true}
     ]
