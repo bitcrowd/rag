@@ -91,7 +91,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
         chunks =
           ingestions
           |> Enum.flat_map(&Rag.Loading.chunk_text(&1, :document))
-          |> Rag.Embedding.Nx.generate_embeddings_batch(:chunk, :embedding)
+          |> Rag.Embedding.Nx.generate_embeddings_batch(Rag.EmbeddingServing, text_key: :chunk, embedding_key: :embedding)
           |> Enum.map(&to_chunk(&1))
 
         Repo.insert_all(#{inspect(schema_module)}, chunks)
@@ -100,7 +100,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
       def query(query) do
         generation =
           Rag.Generation.new(query)
-          |> Rag.Embedding.Nx.generate_embedding()
+          |> Rag.Embedding.Nx.generate_embedding(Rag.EmbeddingServing)
           |> Rag.Retrieval.retrieve(:fulltext_results, fn generation -> query_fulltext(generation) end)
           |> Rag.Retrieval.retrieve(:semantic_results, fn generation ->
             query_with_pgvector(generation)
@@ -127,7 +127,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
             prompt: prompt
         }
 
-        Rag.Generation.Nx.generate_response(generation)
+        Rag.Generation.Nx.generate_response(generation, Rag.LLMServing)
       end
 
       defp to_chunk(ingestion) do
@@ -216,7 +216,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
         chunks =
           ingestions
           |> Enum.flat_map(&Rag.Loading.chunk_text(&1, :document))
-          |> Rag.Embedding.Nx.generate_embeddings_batch(:chunk, :embedding)
+          |> Rag.Embedding.Nx.generate_embeddings_batch(Rag.EmbeddingServing, text_key: :chunk, embedding_key: :embedding)
 
         insert_all_with_chroma(collection, chunks)
       end
@@ -243,7 +243,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
 
         generation =
           Rag.Generation.new(query)
-          |> Rag.Embedding.Nx.generate_embedding(:query, :query_embedding)
+          |> Rag.Embedding.Nx.generate_embedding(Rag.EmbeddingServing)
           |> Rag.Retrieval.retrieve(:chroma, fn generation -> query_with_chroma(collection, generation) end)
 
         context =
@@ -263,7 +263,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
             prompt: prompt
         }
 
-        Rag.Generation.Nx.generate_response(generation)
+        Rag.Generation.Nx.generate_response(generation, Rag.LLMServing)
       end
 
       defp query_with_chroma(collection, generation, limit \\\\ 3) do

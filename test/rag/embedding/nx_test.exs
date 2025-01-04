@@ -4,7 +4,7 @@ defmodule Rag.Embedding.NxTest do
 
   alias Rag.Embedding
 
-  describe "generate_embedding/4" do
+  describe "generate_embedding/3" do
     test "takes a string at text_key and returns ingestion map with a list of numbers at embedding_key" do
       expect(Nx.Serving, :batched_run, fn _serving, _text ->
         %{embedding: Nx.tensor([1, 2, 3])}
@@ -12,7 +12,7 @@ defmodule Rag.Embedding.NxTest do
 
       ingestion = %{text: "hello"}
 
-      assert Embedding.Nx.generate_embedding(ingestion, :text, :embedding) == %{
+      assert Embedding.Nx.generate_embedding(ingestion, TestServing, []) == %{
                text: "hello",
                embedding: [1, 2, 3]
              }
@@ -22,7 +22,7 @@ defmodule Rag.Embedding.NxTest do
       ingestion = %{text: "hello"}
 
       assert_raise KeyError, fn ->
-        Embedding.Nx.generate_embedding(ingestion, :non_existing_key, :embedding)
+        Embedding.Nx.generate_embedding(ingestion, TestServing, text_key: :non_existing_key)
       end
     end
 
@@ -30,14 +30,7 @@ defmodule Rag.Embedding.NxTest do
       ingestion = %{text: "hello"}
 
       assert {:noproc, _} =
-               catch_exit(
-                 Embedding.Nx.generate_embedding(
-                   ingestion,
-                   NonExisting.Serving,
-                   :text,
-                   :embedding
-                 )
-               )
+               catch_exit(Embedding.Nx.generate_embedding(ingestion, NonExisting.Serving, []))
     end
 
     test "emits start, stop, and exception telemetry events" do
@@ -57,7 +50,7 @@ defmodule Rag.Embedding.NxTest do
           [:rag, :generate_embedding, :exception]
         ])
 
-      Embedding.Nx.generate_embedding(ingestion, TestServing, :text, :embedding)
+      Embedding.Nx.generate_embedding(ingestion, TestServing, [])
 
       assert_received {[:rag, :generate_embedding, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :generate_embedding, :stop], ^ref, _measurement, _meta}
@@ -65,14 +58,14 @@ defmodule Rag.Embedding.NxTest do
       expect(Nx.Serving, :batched_run, fn _serving, _text -> raise "boom" end)
 
       assert_raise RuntimeError, fn ->
-        Embedding.Nx.generate_embedding(ingestion, TestServing, :text, :embedding)
+        Embedding.Nx.generate_embedding(ingestion, TestServing, [])
       end
 
       assert_received {[:rag, :generate_embedding, :exception], ^ref, _measurement, _meta}
     end
   end
 
-  describe "generate_embeddings_batch/4" do
+  describe "generate_embeddings_batch/3" do
     test "takes a string at text_key and returns ingestion map with a list of numbers at embedding_key" do
       expect(Nx.Serving, :batched_run, fn _serving, ["hello", "hello again"] ->
         [%{embedding: Nx.tensor([1, 2, 3])}, %{embedding: Nx.tensor([4, 5, 6])}]
@@ -84,14 +77,16 @@ defmodule Rag.Embedding.NxTest do
                %{text: "hello", embedding: [1, 2, 3]},
                %{text: "hello again", embedding: [4, 5, 6]}
              ] ==
-               Embedding.Nx.generate_embeddings_batch(ingestions, :text, :embedding)
+               Embedding.Nx.generate_embeddings_batch(ingestions, TestServing, [])
     end
 
     test "errors if text_key is not in ingestion" do
       ingestions = [%{text: "hello"}]
 
       assert_raise KeyError, fn ->
-        Embedding.Nx.generate_embeddings_batch(ingestions, :non_existing_key, :embedding)
+        Embedding.Nx.generate_embeddings_batch(ingestions, TestServing,
+          text_key: :non_existing_key
+        )
       end
     end
 
@@ -100,12 +95,7 @@ defmodule Rag.Embedding.NxTest do
 
       assert {:noproc, _} =
                catch_exit(
-                 Embedding.Nx.generate_embeddings_batch(
-                   ingestions,
-                   NonExisting.Serving,
-                   :text,
-                   :embedding
-                 )
+                 Embedding.Nx.generate_embeddings_batch(ingestions, NonExisting.Serving, [])
                )
     end
 
@@ -123,7 +113,7 @@ defmodule Rag.Embedding.NxTest do
           [:rag, :generate_embeddings_batch, :exception]
         ])
 
-      Embedding.Nx.generate_embeddings_batch(ingestions, :text, :embedding)
+      Embedding.Nx.generate_embeddings_batch(ingestions, TestServing, [])
 
       assert_received {[:rag, :generate_embeddings_batch, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :generate_embeddings_batch, :stop], ^ref, _measurement, _meta}
@@ -131,7 +121,7 @@ defmodule Rag.Embedding.NxTest do
       expect(Nx.Serving, :batched_run, fn _serving, _text -> raise "boom" end)
 
       assert_raise RuntimeError, fn ->
-        Embedding.Nx.generate_embeddings_batch(ingestions, :text, :embedding)
+        Embedding.Nx.generate_embeddings_batch(ingestions, TestServing, [])
       end
 
       assert_received {[:rag, :generate_embeddings_batch, :exception], ^ref, _measurement, _meta}
