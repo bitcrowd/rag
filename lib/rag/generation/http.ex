@@ -36,7 +36,7 @@ defmodule Rag.Generation.Http do
 
       response = access_response_function.(response.body)
 
-      generation = put_in(generation, [Access.key!(:response)], response)
+      generation = Generation.put_response(generation, response)
 
       {generation, %{metadata | generation: generation}}
     end)

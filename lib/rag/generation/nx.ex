@@ -20,7 +20,7 @@ defmodule Rag.Generation.Nx do
     :telemetry.span([:rag, :generate_response], metadata, fn ->
       %{results: [result]} = Nx.Serving.batched_run(serving, prompt)
 
-      generation = %{generation | response: result.text}
+      generation = Generation.put_response(generation, result.text)
 
       {generation, %{metadata | generation: generation}}
     end)
