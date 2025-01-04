@@ -22,7 +22,7 @@ defmodule Rag.Generation.NxTest do
 
     test "errors if prompt not present" do
       assert_raise ArgumentError, fn ->
-        Generation.Nx.generate_response(%Generation{query: "a query"})
+        Generation.Nx.generate_response(%Generation{query: "a query"}, TestServing)
       end
     end
 

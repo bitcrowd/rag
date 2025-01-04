@@ -6,12 +6,10 @@ defmodule Rag.Generation.Nx do
   alias Rag.Generation
 
   @doc """
-  Passes `prompt` from `generation` to `serving` to generate a response.
+  Passes `generation.prompt` to `serving` to generate a response.
   Then, puts `response` in `generation`.
   """
   @spec generate_response(Generation.t(), Nx.Serving.t()) :: Generation.t()
-  def generate_response(generation, serving \\ Rag.LLMServing)
-
   def generate_response(%Generation{prompt: nil}, _serving),
     do: raise(ArgumentError, message: "prompt must not be nil")
 
