@@ -3,7 +3,7 @@ defmodule Rag.Generation.HttpTest do
   use Mimic
 
   alias Rag.Generation
-  alias Rag.Generation.Params
+  alias Rag.Generation.Http.Params
 
   describe "generate_response/2" do
     test "calls an HTTP API with a prompt to generate a response" do

@@ -3,7 +3,7 @@ defmodule Rag.Embedding.HttpTest do
   use Mimic
 
   alias Rag.Embedding
-  alias Rag.Embedding.Params
+  alias Rag.Embedding.Http.Params
 
   describe "generate_embedding/3" do
     test "takes a string at text_key and returns map with a list of numbers at embedding_key" do

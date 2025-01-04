@@ -1,4 +1,4 @@
-defmodule Rag.Generation.Params do
+defmodule Rag.Generation.Http.Params do
   @moduledoc """
   Parameter definitions for generation via HTTP API.
   """

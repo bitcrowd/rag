@@ -4,7 +4,7 @@ defmodule Rag.Generation.HallucinationDetection.HttpTest do
 
   alias Rag.Generation
   alias Rag.Generation.HallucinationDetection
-  alias Rag.Generation.Params
+  alias Rag.Generation.Http.Params
 
   describe "detect_hallucination/2" do
     test "sets evaluation `:hallucination` to true if response does not equal \"YES\"" do

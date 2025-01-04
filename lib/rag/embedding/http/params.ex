@@ -1,4 +1,4 @@
-defmodule Rag.Embedding.Params do
+defmodule Rag.Embedding.Http.Params do
   @moduledoc """
   Parameter definitions for embeddings via HTTP API.
   """
