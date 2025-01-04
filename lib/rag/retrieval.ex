@@ -44,7 +44,8 @@ defmodule Rag.Retrieval do
   Then, applies [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) to combine the retrieval results into a single list at `output_key`.
   There is no guaranteed order for results with the same score.
 
-  Options:
+  ## Options
+
    * `identity`: list of keys which define the identity of a result. Results with same `identity` will be fused.
   """
   @spec reciprocal_rank_fusion(
