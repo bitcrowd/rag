@@ -3,45 +3,58 @@ defmodule Rag.Embedding.Http.Params do
   Parameter definitions for embeddings via HTTP API.
   """
 
-  @params %{
-    openai: [
+  @type t :: %__MODULE__{
+          url: String.t(),
+          input_key: String.t(),
+          access_embeddings: list(any()),
+          req_params: keyword()
+        }
+
+  @enforce_keys [:url, :input_key, :access_embeddings, :req_params]
+  defstruct [:url, :input_key, :access_embeddings, :req_params]
+
+  def openai_params(model, api_key, req_params \\ []) do
+    %__MODULE__{
       url: "https://api.openai.com/v1/embeddings",
       input_key: "input",
-      json: %{}
-    ],
-    cohere: [
+      access_embeddings: ["data", Access.all(), "embedding"],
+      req_params:
+        Keyword.merge(
+          [
+            auth: {:bearer, api_key},
+            json: %{"model" => model}
+          ],
+          req_params
+        )
+    }
+  end
+
+  def cohere_params(model, api_key, req_params \\ []) do
+    %__MODULE__{
       url: "https://api.cohere.com/v2/embed",
       input_key: "texts",
-      json: %{
-        "input_type" => "search_document",
-        "embedding_types" => ["float"]
-      }
-    ]
-  }
-
-  def openai_params(model, api_key) do
-    @params.openai
-    |> Keyword.put(:auth, {:bearer, api_key})
-    |> put_in([:json, "model"], model)
-    |> Keyword.put(:access_embedding_function, fn response_body ->
-      results = response_body["data"]
-
-      embeddings = Enum.map(results, & &1["embedding"])
-
-      embeddings
-    end)
+      access_embeddings: ["embeddings", "float"],
+      req_params:
+        Keyword.merge(
+          [
+            auth: {:bearer, api_key},
+            json: %{
+              "model" => model,
+              "input_type" => "search_document",
+              "embedding_types" => ["float"]
+            }
+          ],
+          req_params
+        )
+    }
   end
 
-  def cohere_params(model, api_key) do
-    @params.cohere
-    |> Keyword.put(:auth, {:bearer, api_key})
-    |> put_in([:json, "model"], model)
-    |> Keyword.put(:access_embedding_function, fn response_body ->
-      results = response_body["embeddings"]["float"]
+  def put_req_param(params, key_or_keys, value) do
+    keys = List.wrap(key_or_keys)
 
-      embeddings = results
-
-      embeddings
-    end)
+    put_in(params, [Access.key!(:req_params) | keys], value)
   end
+
+  def set_input(params, input),
+    do: put_req_param(params, [:json, params.input_key], List.wrap(input))
 end

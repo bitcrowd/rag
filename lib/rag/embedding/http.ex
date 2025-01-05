@@ -4,20 +4,11 @@ defmodule Rag.Embedding.Http do
   """
 
   alias Rag.Generation
+  alias Rag.Embedding.Http.Params
 
   @doc """
   Passes a text from `ingestion` to the HTTP API specified by `params` to generate an embedding.
   Then, puts the embedding in `ingestion`.
-
-  ## Params
-
-  Required:
-   * `url`: URL of endpoint that is called
-   * `input_key`: key in body under which the text must be passed to the endpoint
-   * `access_embedding_function`: this function receives the response body and must return the generated embedding
-
-  The required params will be popped from `params`.
-  All remaining params will be passed to `req`.
 
   ## Options
 
@@ -25,31 +16,28 @@ defmodule Rag.Embedding.Http do
    * `embedding_key`: key where the generated embedding is stored. Default: `:embedding`
   """
   @type embedding :: list(number())
-  @spec generate_embedding(map(), params :: keyword(), opts :: keyword()) :: %{
+  @spec generate_embedding(map(), params :: Params.t(), opts :: keyword()) :: %{
           atom() => embedding(),
           optional(any) => any
         }
   def generate_embedding(ingestion, params, opts) do
-    {url, params} = Keyword.pop!(params, :url)
-    {input_key, params} = Keyword.pop!(params, :input_key)
-    {access_embedding_function, params} = Keyword.pop!(params, :access_embedding_function)
-
     opts = Keyword.validate!(opts, text_key: :text, embedding_key: :embedding)
     text_key = opts[:text_key]
     embedding_key = opts[:embedding_key]
 
-    texts = Map.fetch!(ingestion, text_key) |> List.wrap()
+    text = Map.fetch!(ingestion, text_key)
 
-    params = put_in(params, [:json, input_key], texts)
+    params = Params.set_input(params, text)
 
-    metadata = %{ingestion: ingestion, url: url, params: params, opts: opts}
+    metadata = %{ingestion: ingestion, params: params, opts: opts}
 
     :telemetry.span([:rag, :generate_embedding], metadata, fn ->
-      response = Req.post!(url, params)
+      response = Req.post!(params.url, params.req_params)
 
-      [embedding] = access_embedding_function.(response.body)
+      [embedding] = get_embeddings(response, params)
 
       ingestion = Map.put(ingestion, embedding_key, embedding)
+
       {ingestion, %{metadata | ingestion: ingestion}}
     end)
   end
@@ -57,18 +45,8 @@ defmodule Rag.Embedding.Http do
   @doc """
   Passes `generation.query` to the Http API to generate an embedding.
   Then, puts the embedding in `generation.query_embedding`.
-
-  ## Params
-
-  Required:
-   * `url`: URL of endpoint that is called
-   * `input_key`: key in body under which the text must be passed to the endpoint
-   * `access_embedding_function`: this function receives the response body and must return the generated embedding
-
-  The required params will be popped from `params`.
-  All remaining params will be passed to `req`.
   """
-  @spec generate_embedding(Generation.t(), params :: keyword()) :: Generation.t()
+  @spec generate_embedding(Generation.t(), params :: Params.t()) :: Generation.t()
   def generate_embedding(%Generation{} = generation, params),
     do: generate_embedding(generation, params, text_key: :query, embedding_key: :query_embedding)
 
@@ -76,42 +54,28 @@ defmodule Rag.Embedding.Http do
   Passes all values of `ingestions` at `text_key` to the HTTP API to generate all embeddings in a single batch.
   Puts the embeddings in `ingestions` at `embedding_key`.
 
-  ## Params
-
-  Required:
-   * `url`: URL of endpoint that is called
-   * `input_key`: key in body under which the text must be passed to the endpoint
-   * `access_embedding_function`: this function receives the response body and must return the generated embedding
-
-  The required params will be popped from `params`.
-  All remaining params will be passed to `req`.
-
   ## Options
 
    * `text_key`: key which holds the text that is used to generate the embedding. Default: `:text`
    * `embedding_key`: key where the generated embedding is stored. Default: `:embedding`
   """
-  @spec generate_embeddings_batch(list(map()), params :: keyword(), opts :: keyword()) ::
+  @spec generate_embeddings_batch(list(map()), params :: Params.t(), opts :: keyword()) ::
           list(%{atom() => embedding(), optional(any) => any})
   def generate_embeddings_batch(ingestions, params, opts) do
-    {url, params} = Keyword.pop!(params, :url)
-    {input_key, params} = Keyword.pop!(params, :input_key)
-    {access_embedding_function, params} = Keyword.pop!(params, :access_embedding_function)
-
     opts = Keyword.validate!(opts, text_key: :text, embedding_key: :embedding)
     text_key = opts[:text_key]
     embedding_key = opts[:embedding_key]
 
     texts = Enum.map(ingestions, &Map.fetch!(&1, text_key))
 
-    params = put_in(params, [:json, input_key], texts)
+    params = Params.set_input(params, texts)
 
-    metadata = %{ingestions: ingestions, url: url, params: params, opts: opts}
+    metadata = %{ingestions: ingestions, params: params, opts: opts}
 
     :telemetry.span([:rag, :generate_embeddings_batch], metadata, fn ->
-      response = Req.post!(url, params)
+      response = Req.post!(params.url, params.req_params)
 
-      embeddings = access_embedding_function.(response.body)
+      embeddings = get_embeddings(response, params)
 
       ingestions =
         Enum.zip_with(ingestions, embeddings, fn ingestion, embedding ->
@@ -121,4 +85,6 @@ defmodule Rag.Embedding.Http do
       {ingestions, %{metadata | ingestions: ingestions}}
     end)
   end
+
+  defp get_embeddings(response, params), do: get_in(response.body, params.access_embeddings)
 end

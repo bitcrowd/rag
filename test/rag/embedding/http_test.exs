@@ -51,6 +51,24 @@ defmodule Rag.Embedding.HttpTest do
 
       assert_received {[:rag, :generate_embedding, :exception], ^ref, _measurement, _meta}
     end
+
+    @tag :integration_test
+    test "openai embeddings" do
+      api_key = System.get_env("OPENAI_API_KEY")
+      params = Params.openai_params("text-embedding-ada-002", api_key)
+
+      %{text: "hello", embedding: _embedding} =
+        Embedding.Http.generate_embedding(%{text: "hello"}, params, [])
+    end
+
+    @tag :integration_test
+    test "cohere embeddings" do
+      api_key = System.get_env("COHERE_API_KEY")
+      params = Params.cohere_params("embed-english-v3.0", api_key)
+
+      %{text: "hello", embedding: _embedding} =
+        Embedding.Http.generate_embedding(%{text: "hello"}, params, [])
+    end
   end
 
   describe "generate_embeddings_batch/3" do
@@ -113,6 +131,24 @@ defmodule Rag.Embedding.HttpTest do
       end
 
       assert_received {[:rag, :generate_embeddings_batch, :exception], ^ref, _measurement, _meta}
+    end
+
+    @tag :integration_test
+    test "openai embeddings" do
+      api_key = System.get_env("OPENAI_API_KEY")
+      params = Params.openai_params("text-embedding-ada-002", api_key)
+
+      [%{text: "hello", embedding: _embedding}] =
+        Embedding.Http.generate_embeddings_batch([%{text: "hello"}], params, [])
+    end
+
+    @tag :integration_test
+    test "cohere embeddings" do
+      api_key = System.get_env("COHERE_API_KEY")
+      params = Params.cohere_params("embed-english-v3.0", api_key)
+
+      [%{text: "hello", embedding: _embedding}] =
+        Embedding.Http.generate_embeddings_batch([%{text: "hello"}], params, [])
     end
   end
 end
