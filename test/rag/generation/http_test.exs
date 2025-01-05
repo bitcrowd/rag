@@ -45,5 +45,23 @@ defmodule Rag.Generation.HttpTest do
 
       assert_received {[:rag, :generate_response, :exception], ^ref, _measurement, _meta}
     end
+
+    @tag :integration_test
+    test "openai generation" do
+      api_key = System.get_env("OPENAI_API_KEY")
+      params = Params.openai_params("gpt-4o-mini", api_key)
+
+      %Generation{query: "test?", response: _response} =
+        Generation.Http.generate_response(%Generation{query: "test?", prompt: "prompt"}, params)
+    end
+
+    @tag :integration_test
+    test "cohere generation" do
+      api_key = System.get_env("COHERE_API_KEY")
+      params = Params.cohere_params("command-r-plus-08-2024", api_key)
+
+      %Generation{query: "test?", response: _response} =
+        Generation.Http.generate_response(%Generation{query: "test?", prompt: "prompt"}, params)
+    end
   end
 end
