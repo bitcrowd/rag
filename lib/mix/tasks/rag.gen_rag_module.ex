@@ -90,11 +90,18 @@ defmodule Mix.Tasks.Rag.GenRagModule do
       def index(ingestions) do
         chunks =
           ingestions
-          |> Enum.flat_map(&Rag.Loading.chunk_text(&1, :document))
+          |> Enum.flat_map(&chunk_text(&1, :document))
           |> Rag.Embedding.Nx.generate_embeddings_batch(Rag.EmbeddingServing, text_key: :chunk, embedding_key: :embedding)
           |> Enum.map(&to_chunk(&1))
 
         Repo.insert_all(#{inspect(schema_module)}, chunks)
+      end
+
+      defp chunk_text(ingestion, text_key, opts \\\\ []) do
+        text = Map.fetch!(ingestion, text_key)
+        chunks = TextChunker.split(text, opts)
+
+        Enum.map(chunks, &Map.put(ingestion, :chunk, &1.text))
       end
 
       def query(query) do
@@ -215,10 +222,17 @@ defmodule Mix.Tasks.Rag.GenRagModule do
 
         chunks =
           ingestions
-          |> Enum.flat_map(&Rag.Loading.chunk_text(&1, :document))
+          |> Enum.flat_map(&chunk_text(&1, :document))
           |> Rag.Embedding.Nx.generate_embeddings_batch(Rag.EmbeddingServing, text_key: :chunk, embedding_key: :embedding)
 
         insert_all_with_chroma(collection, chunks)
+      end
+
+      defp chunk_text(ingestion, text_key, opts \\\\ []) do
+        text = Map.fetch!(ingestion, text_key)
+        chunks = TextChunker.split(text, opts)
+
+        Enum.map(chunks, &Map.put(ingestion, :chunk, &1.text))
       end
 
       defp insert_all_with_chroma(collection, ingestions) do

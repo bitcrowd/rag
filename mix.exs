@@ -30,7 +30,6 @@ defmodule Rag.MixProject do
       {:jason, "~> 1.4"},
       {:req, "~> 0.5.0"},
       {:telemetry, "~> 1.0"},
-      {:text_chunker, "~> 0.3.1"},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:igniter, "~> 0.4", runtime: false},
