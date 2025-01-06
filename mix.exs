@@ -29,13 +29,12 @@ defmodule Rag.MixProject do
     [
       {:jason, "~> 1.4"},
       {:req, "~> 0.5.0"},
+      {:nx, "~> 0.9.0"},
       {:telemetry, "~> 1.0"},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:igniter, "~> 0.4", runtime: false},
-      {:mimic, "~> 1.11", only: :test},
-      {:nx, "~> 0.9.0", optional: true},
-      {:exla, "~> 0.9.1", optional: true}
+      {:igniter, "~> 0.5.7", runtime: false},
+      {:mimic, "~> 1.11", only: :test}
     ]
   end
 

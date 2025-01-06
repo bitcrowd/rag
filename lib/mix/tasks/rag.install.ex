@@ -57,12 +57,9 @@ defmodule Mix.Tasks.Rag.Install do
 
     igniter =
       igniter
-      |> Igniter.Project.Deps.add_dep({:igniter, "~> 0.4.8"})
       |> Igniter.Project.Deps.add_dep({:text_chunker, "~> 0.3.1"})
       |> Igniter.Project.Deps.add_dep({:bumblebee, "~> 0.6.0"})
-      |> Igniter.Project.Deps.add_dep({:axon, "~> 0.7.0"})
       |> Igniter.Project.Deps.add_dep({:exla, "~> 0.9.1"})
-      |> Igniter.Project.Deps.add_dep({:nx, "~> 0.9.0"})
       |> Igniter.Project.Config.configure("config.exs", :nx, [:default_backend], EXLA.Backend)
       |> Igniter.compose_task("rag.gen_eval")
       |> Igniter.compose_task("rag.gen_servings")
