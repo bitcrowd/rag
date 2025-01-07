@@ -65,6 +65,8 @@ defmodule Mix.Tasks.Rag.GenRagModule do
       rag_module,
       """
       alias #{inspect(repo_module)}
+      alias Rag.{Embedding, Generation, Retrieval}
+
       import Ecto.Query
       import Pgvector.Ecto.Query
 
@@ -91,7 +93,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
         chunks =
           ingestions
           |> Enum.flat_map(&chunk_text(&1, :document))
-          |> Rag.Embedding.Nx.generate_embeddings_batch(Rag.EmbeddingServing, text_key: :chunk, embedding_key: :embedding)
+          |> Embedding.Nx.generate_embeddings_batch(Rag.EmbeddingServing, text_key: :chunk, embedding_key: :embedding)
           |> Enum.map(&to_chunk(&1))
 
         Repo.insert_all(#{inspect(schema_module)}, chunks)
@@ -106,35 +108,33 @@ defmodule Mix.Tasks.Rag.GenRagModule do
 
       def query(query) do
         generation =
-          Rag.Generation.new(query)
-          |> Rag.Embedding.Nx.generate_embedding(Rag.EmbeddingServing)
-          |> Rag.Retrieval.retrieve(:fulltext_results, fn generation -> query_fulltext(generation) end)
-          |> Rag.Retrieval.retrieve(:semantic_results, fn generation ->
+          Generation.new(query)
+          |> Embedding.Nx.generate_embedding(Rag.EmbeddingServing)
+          |> Retrieval.retrieve(:fulltext_results, fn generation -> query_fulltext(generation) end)
+          |> Retrieval.retrieve(:semantic_results, fn generation ->
             query_with_pgvector(generation)
           end)
-          |> Rag.Retrieval.reciprocal_rank_fusion(
+          |> Retrieval.reciprocal_rank_fusion(
             %{fulltext_results: 1, semantic_results: 1},
             :rrf_result
           )
+          |> Retrieval.deduplicate(:rrf_result, [:source])
 
         context =
-          Rag.Generation.get_retrieval_result(generation, :rrf_result)
+          Generation.get_retrieval_result(generation, :rrf_result)
           |> Enum.map_join("\\n\\n", & &1.document)
 
         context_sources =
-          Rag.Generation.get_retrieval_result(generation, :rrf_result)
+          Generation.get_retrieval_result(generation, :rrf_result)
           |> Enum.map(& &1.source)
 
         prompt = smollm_prompt(query, context)
 
-        generation = %{
-          generation
-          | context: context,
-            context_sources: context_sources,
-            prompt: prompt
-        }
-
-        Rag.Generation.Nx.generate_response(generation, Rag.LLMServing)
+        generation
+        |> Generation.put_context(context)
+        |> Generation.put_context_sources(context_sources)
+        |> Generation.put_prompt(prompt)
+        |> Generation.Nx.generate_response(Rag.LLMServing)
       end
 
       defp to_chunk(ingestion) do
@@ -155,7 +155,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
       end
 
       defp query_fulltext(%{query: query}, limit \\\\ 3) do
-        query = String.replace(query, " ", " & ")
+        query = query |> String.trim() |> String.replace(" ", " & ")
 
         Repo.all(
           from(c in #{inspect(schema_module)},
@@ -198,6 +198,8 @@ defmodule Mix.Tasks.Rag.GenRagModule do
       igniter,
       rag_module,
       """
+      alias Rag.{Embedding, Generation, Retrieval}
+
       def ingest(path) do
         path
         |> load()
@@ -223,7 +225,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
         chunks =
           ingestions
           |> Enum.flat_map(&chunk_text(&1, :document))
-          |> Rag.Embedding.Nx.generate_embeddings_batch(Rag.EmbeddingServing, text_key: :chunk, embedding_key: :embedding)
+          |> Embedding.Nx.generate_embeddings_batch(Rag.EmbeddingServing, text_key: :chunk, embedding_key: :embedding)
 
         insert_all_with_chroma(collection, chunks)
       end
@@ -256,28 +258,25 @@ defmodule Mix.Tasks.Rag.GenRagModule do
         {:ok, collection} = Chroma.Collection.get_or_create("rag", %{"hnsw:space" => "l2"})
 
         generation =
-          Rag.Generation.new(query)
-          |> Rag.Embedding.Nx.generate_embedding(Rag.EmbeddingServing)
-          |> Rag.Retrieval.retrieve(:chroma, fn generation -> query_with_chroma(collection, generation) end)
+          Generation.new(query)
+          |> Embedding.Nx.generate_embedding(Rag.EmbeddingServing)
+          |> Retrieval.retrieve(:chroma, fn generation -> query_with_chroma(collection, generation) end)
 
         context =
-          Rag.Generation.get_retrieval_result(generation, :chroma)
+          Generation.get_retrieval_result(generation, :chroma)
           |> Enum.map_join("\\n\\n", & &1.document)
 
         context_sources =
-          Rag.Generation.get_retrieval_result(generation, :chroma)
+          Generation.get_retrieval_result(generation, :chroma)
           |> Enum.map(& &1.source)
 
         prompt = smollm_prompt(query, context)
 
-        generation = %{
-          generation
-          | context: context,
-            context_sources: context_sources,
-            prompt: prompt
-        }
-
-        Rag.Generation.Nx.generate_response(generation, Rag.LLMServing)
+        generation
+        |> Generation.put_context(context)
+        |> Generation.put_context_sources(context_sources)
+        |> Generation.put_prompt(prompt)
+        |> Generation.Nx.generate_response(Rag.LLMServing)
       end
 
       defp query_with_chroma(collection, generation, limit \\\\ 3) do
