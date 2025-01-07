@@ -41,8 +41,18 @@ defmodule Rag.Embedding.Nx do
   Then, puts the embedding in `generation.query_embedding`.
   """
   @spec generate_embedding(Generation.t(), Nx.Serving.t()) :: Generation.t()
-  def generate_embedding(%Generation{} = generation, serving),
-    do: generate_embedding(generation, serving, text_key: :query, embedding_key: :query_embedding)
+  def generate_embedding(%Generation{} = generation, serving) do
+    text = generation.query
+
+    metadata = %{serving: serving, generation: generation}
+
+    :telemetry.span([:rag, :generate_embedding], metadata, fn ->
+      %{embedding: embedding} = Nx.Serving.batched_run(serving, text)
+
+      generation = Generation.put_query_embedding(generation, Nx.to_list(embedding))
+      {generation, %{metadata | generation: generation}}
+    end)
+  end
 
   @doc """
   Passes all values of `ingestions` at `text_key` to `serving` to generate all embeddings in a single batch.
