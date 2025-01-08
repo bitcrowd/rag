@@ -1,10 +1,8 @@
-defmodule Rag.Evaluation.OpenAI do
+defmodule Rag.Evaluation.Http do
   @moduledoc """
-  Evaluation for RAG systems using the OpenAI API.
+  Evaluation for RAG systems using an HTTP API.
   """
-  alias Rag.Generation
-
-  @structured_outputs_url "https://api.openai.com/v1/chat/completions"
+  alias Rag.{Generation, Evaluation.Http.Params}
 
   @doc """
   Evaluates the response, query, and context according to the [RAG triad](https://www.trulens.org/getting_started/core_concepts/rag_triad/).
@@ -14,10 +12,9 @@ defmodule Rag.Evaluation.OpenAI do
 
   Prompts from https://github.com/truera/trulens/blob/main/src/feedback/trulens/feedback/prompts.py
   """
-  def evaluate_rag_triad(%Generation{} = generation, openai_params) do
+  @spec evaluate_rag_triad(Generation.t(), Params.t()) :: Generation.t()
+  def evaluate_rag_triad(%Generation{} = generation, params) do
     %{response: response, query: query, context: context} = generation
-
-    %{model: model, api_key: api_key} = openai_params
 
     response_format =
       %{
@@ -47,12 +44,6 @@ defmodule Rag.Evaluation.OpenAI do
           }
         }
       }
-
-    metadata = %{
-      structed_outputs_url: @structured_outputs_url,
-      model: model,
-      generation: generation
-    }
 
     system_prompt =
       "You are a special evaluator assistant who is very proficient in giving ratings between 1 and 5 according to a task description."
@@ -95,29 +86,25 @@ defmodule Rag.Evaluation.OpenAI do
     Score 5: The response is completely relevant to the query.
     """
 
+    params = Params.put_req_param(params, [:json, :response_format], response_format)
+
+    params =
+      Params.set_input(params, [
+        %{role: :system, content: system_prompt},
+        %{role: :user, content: user_prompt}
+      ])
+
+    metadata = %{generation: generation, params: params}
+
     :telemetry.span([:rag, :evaluate_rag_triad], metadata, fn ->
-      response =
-        Req.post!(@structured_outputs_url,
-          auth: {:bearer, api_key},
-          json: %{
-            model: model,
-            messages: [
-              %{role: :system, content: system_prompt},
-              %{role: :user, content: user_prompt}
-            ],
-            response_format: response_format
-          }
-        )
+      evaluation =
+        Req.post!(params.url, params.req_params) |> get_response(params) |> Jason.decode!()
 
-      [result] = response.body["choices"]
-
-      %{"message" => %{"content" => evaluation_json}} = result
-
-      evaluation = Jason.decode!(evaluation_json)
-
-      generation = put_in(generation, [Access.key!(:evaluations), :rag_triad], evaluation)
+      generation = Generation.put_evaluation(generation, :rag_triad, evaluation)
 
       {generation, %{metadata | generation: generation}}
     end)
   end
+
+  defp get_response(response, params), do: get_in(response.body, params.access_response)
 end

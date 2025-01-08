@@ -1,9 +1,10 @@
-defmodule Rag.Evaluation.OpenAITest do
+defmodule Rag.Evaluation.HttpTest do
   use ExUnit.Case
   use Mimic
 
   alias Rag.Generation
   alias Rag.Evaluation
+  alias Rag.Evaluation.Http.Params
 
   describe "evaluate_rag_triad/2" do
     test "takes a query, context, and response and returns an evaluation with scores and reasoning" do
@@ -36,10 +37,7 @@ defmodule Rag.Evaluation.OpenAITest do
         response: "It's a test"
       }
 
-      openai_params = %{
-        model: "gpt-4o-mini",
-        api_key: "somekey"
-      }
+      openai_params = Params.openai_params("gpt-4o-mini", "my_key")
 
       assert %Generation{
                evaluations: %{
@@ -52,25 +50,7 @@ defmodule Rag.Evaluation.OpenAITest do
                    "groundedness_score" => 4
                  }
                }
-             } = Evaluation.OpenAI.evaluate_rag_triad(generation, openai_params)
-    end
-
-    test "errors if model or api_key are not passed" do
-      generation = %Generation{query: "query", context: "context", response: "response"}
-
-      assert_raise MatchError, fn ->
-        Evaluation.OpenAI.evaluate_rag_triad(
-          generation,
-          %{api_key: "hello"}
-        )
-      end
-
-      assert_raise MatchError, fn ->
-        Evaluation.OpenAI.evaluate_rag_triad(
-          generation,
-          %{model: "model"}
-        )
-      end
+             } = Evaluation.Http.evaluate_rag_triad(generation, openai_params)
     end
 
     test "emits start, stop, and exception telemetry events" do
@@ -103,10 +83,7 @@ defmodule Rag.Evaluation.OpenAITest do
         response: "It's a test"
       }
 
-      openai_params = %{
-        model: "gpt-4o-mini",
-        api_key: "somekey"
-      }
+      openai_params = Params.openai_params("gpt-4o-mini", "my_key")
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [
@@ -115,7 +92,7 @@ defmodule Rag.Evaluation.OpenAITest do
           [:rag, :evaluate_rag_triad, :exception]
         ])
 
-      Evaluation.OpenAI.evaluate_rag_triad(generation, openai_params)
+      Evaluation.Http.evaluate_rag_triad(generation, openai_params)
 
       assert_received {[:rag, :evaluate_rag_triad, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :evaluate_rag_triad, :stop], ^ref, _measurement, _meta}
@@ -123,7 +100,7 @@ defmodule Rag.Evaluation.OpenAITest do
       expect(Req, :post!, fn _url, _params -> raise "boom" end)
 
       assert_raise RuntimeError, fn ->
-        Evaluation.OpenAI.evaluate_rag_triad(generation, openai_params)
+        Evaluation.Http.evaluate_rag_triad(generation, openai_params)
       end
 
       assert_received {[:rag, :evaluate_rag_triad, :exception], ^ref, _measurement, _meta}

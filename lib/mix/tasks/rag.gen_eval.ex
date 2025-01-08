@@ -71,16 +71,16 @@ defmodule Mix.Tasks.Rag.GenEval do
         #{inspect(rag_module)}.query(question)
       end
 
-      openai_params = %{
+      openai_params = Rag.Evaluation.Http.Params.openai_params(
         model: "gpt-4o-mini",
         api_key: openai_key
-      }
+      )
 
       IO.puts("evaluating")
 
       generations =
         for generation <- generations do
-          Rag.Evaluation.OpenAI.evaluate_rag_triad(generation, openai_params)
+          Rag.Evaluation.Http.evaluate_rag_triad(generation, openai_params)
         end
 
       json = generations |> Enum.map(& &1.evaluations) |> Jason.encode!()
