@@ -98,9 +98,51 @@ defmodule Rag.Evaluation.Http do
 
     :telemetry.span([:rag, :evaluate_rag_triad], metadata, fn ->
       evaluation =
-        Req.post!(params.url, params.req_params) |> get_response(params) |> Jason.decode!()
+        Req.post!(params.url, params.req_params)
+        |> get_response(params)
+        |> Jason.decode!()
 
       generation = Generation.put_evaluation(generation, :rag_triad, evaluation)
+
+      {generation, %{metadata | generation: generation}}
+    end)
+  end
+
+  @doc """
+  Takes the values of `query`, `response` and `context` from `generation` and passes it to an HTTP API specified by `params` to detect potential hallucinations.
+  Then, puts a new `hallucination` evaluation in `generation`.
+  """
+  @spec detect_hallucination(Generation.t(), params :: Params.t()) :: Generation.t()
+  def detect_hallucination(%Generation{} = generation, params) do
+    %{query: query, response: response, context: context} = generation
+
+    prompt =
+      """
+      Context information is below.
+      ---------------------
+      #{context}
+      ---------------------
+      Given the context information and the query: does the response represent a correct answer only based on the context?
+      Produce ONLY the following output: YES or NO
+      If the response represents a correct answer only based on the context, output: YES
+      If the response does not represent a correct answer only based on the context, output: NO
+      Query: #{query}
+      Response: #{response}
+      output: 
+      """
+
+    params = Params.set_input(params, prompt)
+
+    metadata = %{generation: generation, params: params}
+
+    :telemetry.span([:rag, :detect_hallucination], metadata, fn ->
+      response = Req.post!(params.url, params.req_params)
+
+      response = get_response(response, params)
+
+      hallucination? = response != "YES"
+
+      generation = Generation.put_evaluation(generation, :hallucination, hallucination?)
 
       {generation, %{metadata | generation: generation}}
     end)
