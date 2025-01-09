@@ -83,7 +83,12 @@ defmodule Mix.Tasks.Rag.GenEval do
           Rag.Evaluation.Http.evaluate_rag_triad(generation, openai_params)
         end
 
-      json = generations |> Enum.map(& &1.evaluations) |> Jason.encode!()
+      json = generations
+          |> Enum.map(fn generation ->
+             Map.from_struct(generation)
+             |> Map.take([:query, :context, :context_sources, :response, :evaluations])
+             end)
+          |> Jason.encode!()
 
       File.write!(Path.join(__DIR__, "triad_eval.json"), json)
 
