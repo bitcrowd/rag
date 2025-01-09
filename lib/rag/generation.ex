@@ -1,6 +1,6 @@
 defmodule Rag.Generation do
   @moduledoc """
-  Represents a generation.
+  Represents a generation, the main datastructure in `rag`.
   """
   alias Rag.Generation
 
@@ -25,43 +25,73 @@ defmodule Rag.Generation do
             response: nil,
             evaluations: %{}
 
+  @doc """
+  Creates a new generation struct from a query.
+  """
+  @spec new(String.t()) :: t()
   def new(query) when is_binary(query), do: %Generation{query: query}
 
-  @spec put_query_embedding(Generation.t(), query_embedding :: list(number())) :: Generation.t()
+  @doc """
+  Puts `query_embedding` in `generation.query_embedding`.
+  """
+  @spec put_query_embedding(t(), query_embedding :: list(number())) :: t()
   def put_query_embedding(%Generation{} = generation, query_embedding),
     do: %{generation | query_embedding: query_embedding}
 
-  @spec put_retrieval_result(Generation.t(), key :: atom(), retrieval_result :: map()) ::
-          Generation.t()
+  @doc """
+  Puts `retrieval_result` at `key` in `generation.retrieval_results`.
+  """
+  @spec put_retrieval_result(t(), key :: atom(), retrieval_result :: map()) :: t()
   def put_retrieval_result(%Generation{} = generation, key, retrieval_result),
     do: put_in(generation, [Access.key!(:retrieval_results), key], retrieval_result)
 
-  @spec get_retrieval_result(Generation.t(), key :: atom()) :: any()
+  @doc """
+  Gets the retrieval result at `key` in `generation.retrieval_results`.
+  """
+  @spec get_retrieval_result(t(), key :: atom()) :: any()
   def get_retrieval_result(%Generation{} = generation, key),
     do: Map.fetch!(generation.retrieval_results, key)
 
-  @spec put_context(Generation.t(), context :: String.t()) :: Generation.t()
+  @doc """
+  Puts `context` in `generation.context`.
+  """
+  @spec put_context(t(), context :: String.t()) :: t()
   def put_context(%Generation{} = generation, context) when is_binary(context),
     do: %{generation | context: context}
 
-  @spec put_context_sources(Generation.t(), context_sources :: list(String.t())) :: Generation.t()
+  @doc """
+  Puts `context_sources` in `generation.context_sources`.
+  """
+  @spec put_context_sources(t(), context_sources :: list(String.t())) :: t()
   def put_context_sources(%Generation{} = generation, context_sources)
       when is_list(context_sources),
       do: %{generation | context_sources: context_sources}
 
-  @spec put_prompt(Generation.t(), prompt :: String.t()) :: Generation.t()
+  @doc """
+  Puts `prompt` in `generation.prompt`.
+  """
+  @spec put_prompt(t(), prompt :: String.t()) :: t()
   def put_prompt(%Generation{} = generation, prompt) when is_binary(prompt),
     do: %{generation | prompt: prompt}
 
-  @spec put_response(Generation.t(), response :: String.t()) :: Generation.t()
+  @doc """
+  Puts `response` in `generation.response`.
+  """
+  @spec put_response(t(), response :: String.t()) :: t()
   def put_response(%Generation{} = generation, response) when is_binary(response),
     do: %{generation | response: response}
 
-  @spec put_evaluation(Generation.t(), key :: atom(), evaluation :: any()) :: Generation.t()
+  @doc """
+  Puts `evaluation` at `key` in `generation.evaluations`.
+  """
+  @spec put_evaluation(t(), key :: atom(), evaluation :: any()) :: t()
   def put_evaluation(%Generation{} = generation, key, evaluation),
     do: put_in(generation, [Access.key!(:evaluations), key], evaluation)
 
-  @spec get_evaluation(Generation.t(), key :: atom()) :: any()
+  @doc """
+  Gets the evaluation at `key` in `generation.evaluations`.
+  """
+  @spec get_evaluation(t(), key :: atom()) :: any()
   def get_evaluation(%Generation{} = generation, key),
     do: Map.fetch!(generation.evaluations, key)
 end
