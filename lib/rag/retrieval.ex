@@ -1,6 +1,6 @@
 defmodule Rag.Retrieval do
   @moduledoc """
-  Functions to transform retrieval results.
+  Functions to retrieve data and transform retrieval results.
   """
 
   alias Rag.Generation
@@ -8,7 +8,6 @@ defmodule Rag.Retrieval do
   @doc """
   Calls `retrieval_function` with `generation` as only argument.
   `retrieval_function` must return only the retrieval result.
-  The main purpose of `retrieve/3` is to emit telemetry events.
   """
   @spec retrieve(
           Generation.t(),
@@ -28,10 +27,10 @@ defmodule Rag.Retrieval do
   end
 
   @doc """
-  Gets the retrieval result for each key in `retrieval_result_keys` from `generation`.
-  Then, appends the retrieval result to the list at `output_key`.
+  Gets the retrieval result for each key in `retrieval_result_keys` from `generation.retrieval_results`.
+  Then, concatenates all results into a list at `output_key`.
   """
-  @spec concatenate_retrieval_results(map(), list(atom()), atom()) :: map()
+  @spec concatenate_retrieval_results(Generation.t(), list(atom()), atom()) :: map()
   def concatenate_retrieval_results(generation, retrieval_result_keys, output_key) do
     retrieval_results =
       Enum.flat_map(retrieval_result_keys, &Generation.get_retrieval_result(generation, &1))
@@ -40,7 +39,7 @@ defmodule Rag.Retrieval do
   end
 
   @doc """
-  Gets the retrieval result for each key in `retrieval_result_keys` from `retrieval`.
+  Gets the retrieval result for each key in `retrieval_result_keys_and_weights` from `generation.retrieval_results`.
   Then, applies [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) to combine the retrieval results into a single list at `output_key`.
   There is no guaranteed order for results with the same score.
 
@@ -123,7 +122,7 @@ defmodule Rag.Retrieval do
   end
 
   @doc """
-  Deduplicates entries at `entries_keys` in `retrieval_results` of `generation`.
+  Deduplicates entries at `entries_keys` in `generation.retrieval_results`.
   Two entries are considered duplicates if they hold the same value at **all** `unique_by_keys`.
   In case of duplicates, the first entry is kept.
   """
@@ -134,7 +133,7 @@ defmodule Rag.Retrieval do
     end
 
     retrieval_result =
-      Map.fetch!(generation.retrieval_results, entries_key)
+      Generation.get_retrieval_result(generation, entries_key)
       |> Enum.uniq_by(&Map.take(&1, unique_by_keys))
 
     Generation.put_retrieval_result(generation, entries_key, retrieval_result)
