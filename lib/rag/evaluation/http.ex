@@ -110,7 +110,7 @@ defmodule Rag.Evaluation.Http do
 
   @doc """
   Takes the values of `query`, `response` and `context` from `generation` and passes it to an HTTP API specified by `params` to detect potential hallucinations.
-  Then, puts a new `hallucination` evaluation in `generation`.
+  Then, puts a new `hallucination` evaluation in `generation.evaluations`.
   """
   @spec detect_hallucination(Generation.t(), params :: Params.t()) :: Generation.t()
   def detect_hallucination(%Generation{} = generation, params) do

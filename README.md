@@ -1,5 +1,7 @@
 # Rag
 
+<!-- README START -->
+
 A library to make building performant RAG (Retrieval Augmented Generation) systems in Elixir easy.
 
 ## Installation
@@ -24,3 +26,4 @@ Currently supported options for `<vector_store>`:
 Brought to you by [bitcrowd](https://bitcrowd.net/en).
 
 ![bitcrowd logo](https://github.com/bitcrowd/rag/blob/main/.github/images/bitcrowd_logo.png?raw=true "bitcrowd logo")
+<!-- README END -->

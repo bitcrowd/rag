@@ -20,9 +20,7 @@ defmodule Rag.Generation.Http do
     metadata = %{generation: generation, params: params}
 
     :telemetry.span([:rag, :generate_response], metadata, fn ->
-      response = Req.post!(params.url, params.req_params)
-
-      response = get_response(response, params)
+      response = Req.post!(params.url, params.req_params) |> get_response(params)
 
       generation = Generation.put_response(generation, response)
 

@@ -43,7 +43,7 @@ defmodule Rag.Embedding.Http do
   end
 
   @doc """
-  Passes `generation.query` to the Http API to generate an embedding.
+  Passes `generation.query` to the HTTP API specified by `params` to generate an embedding.
   Then, puts the embedding in `generation.query_embedding`.
   """
   @spec generate_embedding(Generation.t(), params :: Params.t()) :: Generation.t()
@@ -51,7 +51,7 @@ defmodule Rag.Embedding.Http do
     do: generate_embedding(generation, params, text_key: :query, embedding_key: :query_embedding)
 
   @doc """
-  Passes all values of `ingestions` at `text_key` to the HTTP API to generate all embeddings in a single batch.
+  Passes all values of `ingestions` at `text_key` to the HTTP API specified by `params` to generate all embeddings in a single batch.
   Puts the embeddings in `ingestions` at `embedding_key`.
 
   ## Options

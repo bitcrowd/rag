@@ -1,6 +1,6 @@
 defmodule Rag.Embedding.Nx do
   @moduledoc """
-  Functions to generate embeddings using `Nx.Serving.batched_run/2`. 
+  Functions to generate embeddings using `Nx`. 
   """
 
   alias Rag.Generation

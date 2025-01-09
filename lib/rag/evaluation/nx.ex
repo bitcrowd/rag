@@ -77,8 +77,8 @@ defmodule Rag.Evaluation.Nx do
   end
 
   @doc """
-  Takes the values of `query`, `response` and `context` from `generation` and passes it to an HTTP API specified by `params` to detect potential hallucinations.
-  Then, puts a new `hallucination` evaluation in `generation`.
+  Takes the values of `query`, `response` and `context` from `generation` and passes it to `serving` to detect potential hallucinations.
+  Then, puts a new `hallucination` evaluation in `generation.evaluations`.
   """
   @spec detect_hallucination(Generation.t(), serving :: Nx.Serving.t()) :: Generation.t()
   def detect_hallucination(%Generation{} = generation, serving) do

@@ -1,9 +1,12 @@
 defmodule Rag.Generation do
   @moduledoc """
-  Represents a generation, the main datastructure in `rag`.
+  Functions to work with a generation struct.
   """
   alias Rag.Generation
 
+  @typedoc """
+  Represents a generation, the main datastructure in `rag`.
+  """
   @type t :: %__MODULE__{
           query: String.t(),
           query_embedding: list(number()),
