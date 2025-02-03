@@ -1,7 +1,9 @@
 defmodule Rag.Embedding.Nx do
   @moduledoc """
-  Functions to generate embeddings using `Nx`. 
+  Implementation of `Rag.Embedding.Adapter` using `Nx`.
   """
+
+  @behaviour Rag.Embedding.Adapter
 
   alias Rag.Generation
 
@@ -14,6 +16,7 @@ defmodule Rag.Embedding.Nx do
    * `text_key`: key which holds the text that is used to generate the embedding. Default: `:text`
    * `embedding_key`: key where the generated embedding is stored. Default: `:embedding`
   """
+  @impl Rag.Embedding.Adapter
   @type embedding :: list(number())
   @spec generate_embedding(map(), Nx.Serving.t(), opts :: keyword()) :: %{
           atom() => embedding(),
@@ -40,9 +43,11 @@ defmodule Rag.Embedding.Nx do
   Passes `generation.query` to `serving` to generate an embedding.
   Then, puts the embedding in `generation.query_embedding`.
   """
+  @impl Rag.Embedding.Adapter
   @spec generate_embedding(Generation.t(), Nx.Serving.t()) :: Generation.t()
   def generate_embedding(%Generation{halted?: true} = generation, _serving), do: generation
 
+  @impl Rag.Embedding.Adapter
   def generate_embedding(%Generation{} = generation, serving) do
     text = generation.query
 
@@ -65,6 +70,7 @@ defmodule Rag.Embedding.Nx do
    * `text_key`: key which holds the text that is used to generate the embedding. Default: `:text`
    * `embedding_key`: key where the generated embedding is stored. Default: `:embedding`
   """
+  @impl Rag.Embedding.Adapter
   @spec generate_embeddings_batch(list(map()), Nx.Serving.t(), opts :: keyword()) ::
           list(%{atom() => embedding(), optional(any) => any})
   def generate_embeddings_batch(ingestions, serving, opts) when is_list(ingestions) do

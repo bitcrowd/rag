@@ -1,7 +1,10 @@
 defmodule Rag.Evaluation.Http do
   @moduledoc """
-  Evaluation for RAG systems using an HTTP API.
+  Implementation of `Rag.Evaluation.Adapter` using HTTP.
   """
+
+  @behaviour Rag.Evaluation.Adapter
+
   alias Rag.{Generation, Evaluation.Http.Params}
 
   @doc """
@@ -12,9 +15,11 @@ defmodule Rag.Evaluation.Http do
 
   Prompts from https://github.com/truera/trulens/blob/main/src/feedback/trulens/feedback/prompts.py
   """
+  @impl Rag.Evaluation.Adapter
   @spec evaluate_rag_triad(Generation.t(), Params.t()) :: Generation.t()
   def evaluate_rag_triad(%Generation{halted?: true} = generation, _params), do: generation
 
+  @impl Rag.Evaluation.Adapter
   def evaluate_rag_triad(%Generation{} = generation, params) do
     %{response: response, query: query, context: context} = generation
 
@@ -114,9 +119,11 @@ defmodule Rag.Evaluation.Http do
   Takes the values of `query`, `response` and `context` from `generation` and passes it to an HTTP API specified by `params` to detect potential hallucinations.
   Then, puts a new `hallucination` evaluation in `generation.evaluations`.
   """
+  @impl Rag.Evaluation.Adapter
   @spec detect_hallucination(Generation.t(), params :: Params.t()) :: Generation.t()
   def detect_hallucination(%Generation{halted?: true} = generation, _params), do: generation
 
+  @impl Rag.Evaluation.Adapter
   def detect_hallucination(%Generation{} = generation, params) do
     %{query: query, response: response, context: context} = generation
 
@@ -132,7 +139,7 @@ defmodule Rag.Evaluation.Http do
       If the response does not represent a correct answer only based on the context, output: NO
       Query: #{query}
       Response: #{response}
-      output: 
+      output:
       """
 
     params = Params.set_input(params, prompt)

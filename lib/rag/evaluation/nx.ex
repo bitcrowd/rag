@@ -1,7 +1,10 @@
 defmodule Rag.Evaluation.Nx do
   @moduledoc """
-  Evaluation for RAG systems using `Nx`.
+  Implementation of `Rag.Evaluation.Adapter` using `Nx`.
   """
+
+  @behaviour Rag.Evaluation.Adapter
+
   alias Rag.Generation
 
   @doc """
@@ -12,9 +15,11 @@ defmodule Rag.Evaluation.Nx do
 
   Prompts from https://github.com/truera/trulens/blob/main/src/feedback/trulens/feedback/prompts.py
   """
+  @impl Rag.Evaluation.Adapter
   @spec evaluate_rag_triad(Generation.t(), Nx.Serving.t()) :: Generation.t()
   def evaluate_rag_triad(%Generation{halted?: true} = generation, _serving), do: generation
 
+  @impl Rag.Evaluation.Adapter
   def evaluate_rag_triad(%Generation{} = generation, serving) do
     %{response: response, query: query, context: context} = generation
 
@@ -82,9 +87,11 @@ defmodule Rag.Evaluation.Nx do
   Takes the values of `query`, `response` and `context` from `generation` and passes it to `serving` to detect potential hallucinations.
   Then, puts a new `hallucination` evaluation in `generation.evaluations`.
   """
+  @impl Rag.Evaluation.Adapter
   @spec detect_hallucination(Generation.t(), serving :: Nx.Serving.t()) :: Generation.t()
   def detect_hallucination(%Generation{halted?: true} = generation, _serving), do: generation
 
+  @impl Rag.Evaluation.Adapter
   def detect_hallucination(%Generation{} = generation, serving) do
     %{query: query, response: response, context: context} = generation
 
@@ -100,7 +107,7 @@ defmodule Rag.Evaluation.Nx do
       If the response does not represent a correct answer only based on the context, output: NO
       Query: #{query}
       Response: #{response}
-      output: 
+      output:
       """
 
     metadata = %{generation: generation, serving: serving}

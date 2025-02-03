@@ -1,7 +1,9 @@
 defmodule Rag.Embedding.Http do
   @moduledoc """
-  Functions to generate embeddings using an HTTP API.
+  Implementation of `Rag.Embedding.Adapter` using HTTP.
   """
+
+  @behaviour Rag.Embedding.Adapter
 
   alias Rag.Generation
   alias Rag.Embedding.Http.Params
@@ -15,6 +17,7 @@ defmodule Rag.Embedding.Http do
    * `text_key`: key which holds the text that is used to generate the embedding. Default: `:text`
    * `embedding_key`: key where the generated embedding is stored. Default: `:embedding`
   """
+  @impl Rag.Embedding.Adapter
   @type embedding :: list(number())
   @spec generate_embedding(map(), params :: Params.t(), opts :: keyword()) :: %{
           atom() => embedding(),
@@ -46,6 +49,7 @@ defmodule Rag.Embedding.Http do
   Passes `generation.query` to the HTTP API specified by `params` to generate an embedding.
   Then, puts the embedding in `generation.query_embedding`.
   """
+  @impl Rag.Embedding.Adapter
   @spec generate_embedding(Generation.t(), params :: Params.t()) :: Generation.t()
   def generate_embedding(%Generation{halted?: true} = generation, _params), do: generation
 
@@ -74,6 +78,7 @@ defmodule Rag.Embedding.Http do
    * `text_key`: key which holds the text that is used to generate the embedding. Default: `:text`
    * `embedding_key`: key where the generated embedding is stored. Default: `:embedding`
   """
+  @impl Rag.Embedding.Adapter
   @spec generate_embeddings_batch(list(map()), params :: Params.t(), opts :: keyword()) ::
           list(%{atom() => embedding(), optional(any) => any})
   def generate_embeddings_batch(ingestions, params, opts) do
