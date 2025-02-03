@@ -17,6 +17,13 @@ defmodule Rag.Generation.HttpTest do
       assert %{response: "a response"} = Generation.Http.generate_response(generation, params)
     end
 
+    test "returns unchanged generation when halted? is true" do
+      params = Params.openai_params("openai_model", "somekey")
+      generation = %Generation{query: "query", prompt: "a prompt", halted?: true}
+
+      assert generation == Generation.Http.generate_response(generation, params)
+    end
+
     test "emits start, stop, and exception telemetry events" do
       expect(Req, :post!, fn _url, _params ->
         %{body: %{"choices" => [%{"index" => 0, "message" => %{"content" => "a response"}}]}}

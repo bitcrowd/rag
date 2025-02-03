@@ -88,6 +88,14 @@ defmodule Rag.Embedding.HttpTest do
              }
     end
 
+    test "returns unchanged generation when halted? is true" do
+      generation = %Generation{query: "query", halted?: true}
+
+      openai_params = Params.openai_params("text-embedding-3-small", "somekey")
+
+      assert generation == Embedding.Http.generate_embedding(generation, openai_params)
+    end
+
     test "emits start, stop, and exception telemetry events" do
       expect(Req, :post!, fn _url, _params ->
         %{body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}

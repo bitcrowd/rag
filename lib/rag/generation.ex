@@ -15,7 +15,8 @@ defmodule Rag.Generation do
           context_sources: list(String.t()),
           prompt: String.t(),
           response: String.t(),
-          evaluations: %{atom() => any}
+          evaluations: %{atom() => any},
+          halted?: boolean()
         }
 
   @enforce_keys [:query]
@@ -26,7 +27,8 @@ defmodule Rag.Generation do
             context_sources: [],
             prompt: nil,
             response: nil,
-            evaluations: %{}
+            evaluations: %{},
+            halted?: false
 
   @doc """
   Creates a new generation struct from a query.
@@ -97,4 +99,10 @@ defmodule Rag.Generation do
   @spec get_evaluation(t(), key :: atom()) :: any()
   def get_evaluation(%Generation{} = generation, key),
     do: Map.fetch!(generation.evaluations, key)
+
+  @doc """
+  Sets `halted?` to `true` to skip all remaining operations.
+  """
+  @spec halt(t()) :: t()
+  def halt(%Generation{} = generation), do: %{generation | halted?: true}
 end

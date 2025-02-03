@@ -80,6 +80,12 @@ defmodule Rag.Embedding.NxTest do
              }
     end
 
+    test "returns unchanged generation when halted? is true" do
+      generation = %Generation{query: "query", halted?: true}
+
+      assert generation == Embedding.Nx.generate_embedding(generation, TestServing)
+    end
+
     test "errors if serving is not available" do
       generation = Generation.new("hello")
 

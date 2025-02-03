@@ -13,6 +13,8 @@ defmodule Rag.Evaluation.Http do
   Prompts from https://github.com/truera/trulens/blob/main/src/feedback/trulens/feedback/prompts.py
   """
   @spec evaluate_rag_triad(Generation.t(), Params.t()) :: Generation.t()
+  def evaluate_rag_triad(%Generation{halted?: true} = generation, _params), do: generation
+
   def evaluate_rag_triad(%Generation{} = generation, params) do
     %{response: response, query: query, context: context} = generation
 
@@ -113,6 +115,8 @@ defmodule Rag.Evaluation.Http do
   Then, puts a new `hallucination` evaluation in `generation.evaluations`.
   """
   @spec detect_hallucination(Generation.t(), params :: Params.t()) :: Generation.t()
+  def detect_hallucination(%Generation{halted?: true} = generation, _params), do: generation
+
   def detect_hallucination(%Generation{} = generation, params) do
     %{query: query, response: response, context: context} = generation
 

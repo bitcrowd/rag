@@ -14,6 +14,9 @@ defmodule Rag.Retrieval do
           result_key :: atom(),
           (Generation.t() -> any())
         ) :: Generation.t()
+  def retrieve(%Generation{halted?: true} = generation, _result_key, _retrieval_function),
+    do: generation
+
   def retrieve(generation, result_key, retrieval_function) do
     metadata = %{generation: generation}
 
@@ -31,6 +34,13 @@ defmodule Rag.Retrieval do
   Then, concatenates all results into a list at `output_key`.
   """
   @spec concatenate_retrieval_results(Generation.t(), list(atom()), atom()) :: map()
+  def concatenate_retrieval_results(
+        %Generation{halted?: true} = generation,
+        _retrieval_result_keys,
+        _output_key
+      ),
+      do: generation
+
   def concatenate_retrieval_results(generation, retrieval_result_keys, output_key) do
     retrieval_results =
       Enum.flat_map(retrieval_result_keys, &Generation.get_retrieval_result(generation, &1))
@@ -59,6 +69,14 @@ defmodule Rag.Retrieval do
         output_key,
         opts \\ []
       )
+
+  def reciprocal_rank_fusion(
+        %Generation{halted?: true} = generation,
+        _retrieval_result_keys_and_weights,
+        _output_key,
+        _opts
+      ),
+      do: generation
 
   def reciprocal_rank_fusion(_generation, retrieval_result_keys_and_weights, _output_key, _opts)
       when map_size(retrieval_result_keys_and_weights) == 0,
@@ -127,6 +145,9 @@ defmodule Rag.Retrieval do
   In case of duplicates, the first entry is kept.
   """
   @spec deduplicate(Generation.t(), atom(), list(atom())) :: Generation.t()
+  def deduplicate(%Generation{halted?: true} = generation, _entries_key, _unique_by_keys),
+    do: generation
+
   def deduplicate(generation, entries_key, unique_by_keys) do
     if unique_by_keys == [] do
       raise ArgumentError, "unique_by_keys must not be empty"

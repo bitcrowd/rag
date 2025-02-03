@@ -22,6 +22,12 @@ defmodule Rag.RetrievalTest do
              }
     end
 
+    test "returns unchanged generation when halted? is true" do
+      generation = %Generation{query: "query?", halted?: true}
+
+      assert generation == Rag.Retrieval.retrieve(generation, :result, fn _ -> "ignored" end)
+    end
+
     test "emits start, stop, and exception events" do
       fun = fn state ->
         assert state == %Generation{query: "query?"}
@@ -96,6 +102,12 @@ defmodule Rag.RetrievalTest do
       assert_raise KeyError, fn ->
         Retrieval.concatenate_retrieval_results(generation, [:foo], :results)
       end
+    end
+
+    test "returns unchanged generation when halted? is true" do
+      generation = %Generation{query: "hello", halted?: true}
+
+      assert generation == Retrieval.concatenate_retrieval_results(generation, [:foo], :results)
     end
   end
 
@@ -219,6 +231,12 @@ defmodule Rag.RetrievalTest do
         Retrieval.reciprocal_rank_fusion(generation, %{}, :results)
       end
     end
+
+    test "returns unchanged generation when halted? is true" do
+      generation = %Generation{query: "hello", halted?: true}
+
+      assert generation == Retrieval.reciprocal_rank_fusion(generation, %{foo: 1}, :results)
+    end
   end
 
   describe "deduplicate_results/3" do
@@ -248,6 +266,12 @@ defmodule Rag.RetrievalTest do
       assert_raise ArgumentError, fn ->
         Retrieval.deduplicate(generation, :text, [])
       end
+    end
+
+    test "returns unchanged generation when halted? is true" do
+      generation = %Generation{query: "hello", halted?: true}
+
+      assert generation == Retrieval.deduplicate(generation, :results, [:foo])
     end
   end
 end

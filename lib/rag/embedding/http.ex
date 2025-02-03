@@ -47,6 +47,7 @@ defmodule Rag.Embedding.Http do
   Then, puts the embedding in `generation.query_embedding`.
   """
   @spec generate_embedding(Generation.t(), params :: Params.t()) :: Generation.t()
+  def generate_embedding(%Generation{halted?: true} = generation, _params), do: generation
 
   def generate_embedding(%Generation{} = generation, params) do
     params = Params.set_input(params, generation.query)

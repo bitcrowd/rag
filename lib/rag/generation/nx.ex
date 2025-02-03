@@ -10,6 +10,8 @@ defmodule Rag.Generation.Nx do
   Then, puts `response` in `generation`.
   """
   @spec generate_response(Generation.t(), Nx.Serving.t()) :: Generation.t()
+  def generate_response(%Generation{halted?: true} = generation, _serving), do: generation
+
   def generate_response(%Generation{prompt: nil}, _serving),
     do: raise(ArgumentError, message: "prompt must not be nil")
 

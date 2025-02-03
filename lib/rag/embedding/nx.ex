@@ -41,6 +41,8 @@ defmodule Rag.Embedding.Nx do
   Then, puts the embedding in `generation.query_embedding`.
   """
   @spec generate_embedding(Generation.t(), Nx.Serving.t()) :: Generation.t()
+  def generate_embedding(%Generation{halted?: true} = generation, _serving), do: generation
+
   def generate_embedding(%Generation{} = generation, serving) do
     text = generation.query
 

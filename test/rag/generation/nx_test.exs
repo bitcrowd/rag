@@ -20,6 +20,12 @@ defmodule Rag.Generation.NxTest do
       assert %{response: "a response"} = Generation.Nx.generate_response(generation, TestServing)
     end
 
+    test "returns unchanged generation when halted? is true" do
+      generation = %Generation{query: "a query", prompt: "a prompt", halted?: true}
+
+      assert generation == Generation.Nx.generate_response(generation, TestServing)
+    end
+
     test "errors if prompt not present" do
       assert_raise ArgumentError, fn ->
         Generation.Nx.generate_response(%Generation{query: "a query"}, TestServing)

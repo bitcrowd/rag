@@ -48,6 +48,19 @@ defmodule Rag.Evaluation.NxTest do
              } = Evaluation.Nx.evaluate_rag_triad(generation, serving)
     end
 
+    test "returns unchanged generation when halted? is true" do
+      generation = %Generation{
+        query: "What's with this?",
+        context: "This is a test",
+        response: "It's a test",
+        halted?: true
+      }
+
+      serving = TestServing
+
+      assert generation == Evaluation.Nx.evaluate_rag_triad(generation, serving)
+    end
+
     test "emits start, stop, and exception telemetry events" do
       expect(Nx.Serving, :batched_run, fn _serving, _prompt ->
         %{
@@ -143,6 +156,19 @@ defmodule Rag.Evaluation.NxTest do
 
       assert %Generation{evaluations: %{hallucination: false}} =
                Evaluation.Nx.detect_hallucination(generation, serving)
+    end
+
+    test "returns unchanged generation when halted? is true" do
+      generation = %Generation{
+        query: "an important query",
+        context: "some context",
+        response: "this is something related",
+        halted?: true
+      }
+
+      serving = TestServing
+
+      assert generation == Evaluation.Nx.detect_hallucination(generation, serving)
     end
 
     test "emits start, stop, and exception telemetry events" do

@@ -53,6 +53,19 @@ defmodule Rag.Evaluation.HttpTest do
              } = Evaluation.Http.evaluate_rag_triad(generation, openai_params)
     end
 
+    test "returns unchanged generation when halted? is true" do
+      generation = %Generation{
+        query: "What's with this?",
+        context: "This is a test",
+        response: "It's a test",
+        halted?: true
+      }
+
+      openai_params = Params.openai_params("gpt-4o-mini", "my_key")
+
+      assert generation == Evaluation.Http.evaluate_rag_triad(generation, openai_params)
+    end
+
     test "emits start, stop, and exception telemetry events" do
       expect(Req, :post!, fn _url, _params ->
         %{
@@ -166,6 +179,22 @@ defmodule Rag.Evaluation.HttpTest do
                  },
                  params
                )
+    end
+
+    test "returns unchanged generation when halted? is true" do
+      query = "an important query"
+      context = "some context"
+      response = "this is something completely unrelated"
+      params = Params.openai_params("openai_model", "somekey")
+
+      generation = %Generation{
+        query: query,
+        context: context,
+        response: response,
+        halted?: true
+      }
+
+      assert generation == Evaluation.Http.detect_hallucination(generation, params)
     end
 
     test "emits start, stop, and exception telemetry events" do
