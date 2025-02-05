@@ -3,6 +3,7 @@ defmodule Rag.Embedding.HttpTest do
   use Mimic
 
   alias Rag.Embedding
+  alias Rag.Generation
   alias Rag.Embedding.Http.Params
 
   describe "generate_embedding/3" do
@@ -77,11 +78,11 @@ defmodule Rag.Embedding.HttpTest do
         %{body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}
       end)
 
-      generation = Rag.Generation.new("query")
+      generation = Generation.new("query")
 
       openai_params = Params.openai_params("text-embedding-3-small", "somekey")
 
-      assert Embedding.Http.generate_embedding(generation, openai_params) == %Rag.Generation{
+      assert Embedding.Http.generate_embedding(generation, openai_params) == %Generation{
                query: "query",
                query_embedding: [1, 2, 3]
              }
@@ -92,7 +93,7 @@ defmodule Rag.Embedding.HttpTest do
         %{body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}
       end)
 
-      generation = Rag.Generation.new("query")
+      generation = Generation.new("query")
 
       openai_params = Params.openai_params("text-embedding-3-small", "somekey")
 

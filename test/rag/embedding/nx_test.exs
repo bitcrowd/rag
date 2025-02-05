@@ -3,6 +3,7 @@ defmodule Rag.Embedding.NxTest do
   use Mimic
 
   alias Rag.Embedding
+  alias Rag.Generation
 
   describe "generate_embedding/3" do
     test "takes a string at text_key and returns ingestion map with a list of numbers at embedding_key" do
@@ -71,16 +72,16 @@ defmodule Rag.Embedding.NxTest do
         %{embedding: Nx.tensor([1, 2, 3])}
       end)
 
-      generation = %Rag.Generation{query: "query"}
+      generation = %Generation{query: "query"}
 
-      assert Embedding.Nx.generate_embedding(generation, TestServing) == %Rag.Generation{
+      assert Embedding.Nx.generate_embedding(generation, TestServing) == %Generation{
                query: "query",
                query_embedding: [1, 2, 3]
              }
     end
 
     test "errors if serving is not available" do
-      generation = Rag.Generation.new("hello")
+      generation = Generation.new("hello")
 
       assert {:noproc, _} =
                catch_exit(Embedding.Nx.generate_embedding(generation, NonExisting.Serving))
@@ -94,7 +95,7 @@ defmodule Rag.Embedding.NxTest do
         %{embedding: Nx.tensor([1, 2, 3])}
       end)
 
-      generation = Rag.Generation.new("hello")
+      generation = Generation.new("hello")
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [
