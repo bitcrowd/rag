@@ -65,6 +65,59 @@ defmodule Rag.Embedding.NxTest do
     end
   end
 
+  describe "generate_embedding/2" do
+    test "takes the query from the generation, generates an embedding and puts it into query_embedding" do
+      expect(Nx.Serving, :batched_run, fn _serving, "query" ->
+        %{embedding: Nx.tensor([1, 2, 3])}
+      end)
+
+      generation = %Rag.Generation{query: "query"}
+
+      assert Embedding.Nx.generate_embedding(generation, TestServing) == %Rag.Generation{
+               query: "query",
+               query_embedding: [1, 2, 3]
+             }
+    end
+
+    test "errors if serving is not available" do
+      generation = Rag.Generation.new("hello")
+
+      assert {:noproc, _} =
+               catch_exit(Embedding.Nx.generate_embedding(generation, NonExisting.Serving))
+    end
+
+    test "emits start, stop, and exception telemetry events" do
+      expect(Nx.Serving, :batched_run, fn serving, text ->
+        assert serving == TestServing
+        assert text == "hello"
+
+        %{embedding: Nx.tensor([1, 2, 3])}
+      end)
+
+      generation = Rag.Generation.new("hello")
+
+      ref =
+        :telemetry_test.attach_event_handlers(self(), [
+          [:rag, :generate_embedding, :start],
+          [:rag, :generate_embedding, :stop],
+          [:rag, :generate_embedding, :exception]
+        ])
+
+      Embedding.Nx.generate_embedding(generation, TestServing)
+
+      assert_received {[:rag, :generate_embedding, :start], ^ref, _measurement, _meta}
+      assert_received {[:rag, :generate_embedding, :stop], ^ref, _measurement, _meta}
+
+      expect(Nx.Serving, :batched_run, fn _serving, _text -> raise "boom" end)
+
+      assert_raise RuntimeError, fn ->
+        Embedding.Nx.generate_embedding(generation, TestServing)
+      end
+
+      assert_received {[:rag, :generate_embedding, :exception], ^ref, _measurement, _meta}
+    end
+  end
+
   describe "generate_embeddings_batch/3" do
     test "takes a string at text_key and returns ingestion map with a list of numbers at embedding_key" do
       expect(Nx.Serving, :batched_run, fn _serving, ["hello", "hello again"] ->
