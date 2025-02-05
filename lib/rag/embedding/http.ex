@@ -47,8 +47,22 @@ defmodule Rag.Embedding.Http do
   Then, puts the embedding in `generation.query_embedding`.
   """
   @spec generate_embedding(Generation.t(), params :: Params.t()) :: Generation.t()
-  def generate_embedding(%Generation{} = generation, params),
-    do: generate_embedding(generation, params, text_key: :query, embedding_key: :query_embedding)
+
+  def generate_embedding(%Generation{} = generation, params) do
+    params = Params.set_input(params, generation.query)
+
+    metadata = %{generation: generation, params: params}
+
+    :telemetry.span([:rag, :generate_embedding], metadata, fn ->
+      response = Req.post!(params.url, params.req_params)
+
+      [embedding] = get_embeddings(response, params)
+
+      generation = Generation.put_query_embedding(generation, embedding)
+
+      {generation, %{metadata | generation: generation}}
+    end)
+  end
 
   @doc """
   Passes all values of `ingestions` at `text_key` to the HTTP API specified by `params` to generate all embeddings in a single batch.

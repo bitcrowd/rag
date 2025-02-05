@@ -71,6 +71,53 @@ defmodule Rag.Embedding.HttpTest do
     end
   end
 
+  describe "generate_embedding/2" do
+    test "takes the query from the generation, generates an embedding and puts it into query_embedding" do
+      expect(Req, :post!, fn _url, _params ->
+        %{body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}
+      end)
+
+      generation = Rag.Generation.new("query")
+
+      openai_params = Params.openai_params("text-embedding-3-small", "somekey")
+
+      assert Embedding.Http.generate_embedding(generation, openai_params) == %Rag.Generation{
+               query: "query",
+               query_embedding: [1, 2, 3]
+             }
+    end
+
+    test "emits start, stop, and exception telemetry events" do
+      expect(Req, :post!, fn _url, _params ->
+        %{body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}
+      end)
+
+      generation = Rag.Generation.new("query")
+
+      openai_params = Params.openai_params("text-embedding-3-small", "somekey")
+
+      ref =
+        :telemetry_test.attach_event_handlers(self(), [
+          [:rag, :generate_embedding, :start],
+          [:rag, :generate_embedding, :stop],
+          [:rag, :generate_embedding, :exception]
+        ])
+
+      Embedding.Http.generate_embedding(generation, openai_params)
+
+      assert_received {[:rag, :generate_embedding, :start], ^ref, _measurement, _meta}
+      assert_received {[:rag, :generate_embedding, :stop], ^ref, _measurement, _meta}
+
+      expect(Req, :post!, fn _url, _params -> raise "boom" end)
+
+      assert_raise RuntimeError, fn ->
+        Embedding.Http.generate_embedding(generation, openai_params)
+      end
+
+      assert_received {[:rag, :generate_embedding, :exception], ^ref, _measurement, _meta}
+    end
+  end
+
   describe "generate_embeddings_batch/3" do
     test "takes a string at text_key and returns ingestion map with a list of numbers at embedding_key" do
       expect(Req, :post!, fn _url, _params ->
