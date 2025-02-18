@@ -4,7 +4,7 @@ defmodule Rag.Embedding.HttpTest do
 
   alias Rag.Embedding
   alias Rag.Generation
-  alias Rag.Embedding.Http.Params
+  alias Rag.Ai.Http.EmbeddingParams
 
   describe "generate_embedding/3" do
     test "takes a string at text_key and returns map with a list of numbers at embedding_key" do
@@ -14,7 +14,7 @@ defmodule Rag.Embedding.HttpTest do
 
       ingestion = %{text: "hello"}
 
-      openai_params = Params.openai_params("text-embedding-3-small", "somekey")
+      openai_params = EmbeddingParams.openai_params("text-embedding-3-small", "somekey")
 
       assert Embedding.Http.generate_embedding(ingestion, openai_params, []) ==
                %{
@@ -30,7 +30,7 @@ defmodule Rag.Embedding.HttpTest do
 
       ingestion = %{text: "hello"}
 
-      openai_params = Params.openai_params("text-embedding-3-small", "somekey")
+      openai_params = EmbeddingParams.openai_params("text-embedding-3-small", "somekey")
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [
@@ -56,7 +56,7 @@ defmodule Rag.Embedding.HttpTest do
     @tag :integration_test
     test "openai embeddings" do
       api_key = System.get_env("OPENAI_API_KEY")
-      params = Params.openai_params("text-embedding-ada-002", api_key)
+      params = EmbeddingParams.openai_params("text-embedding-ada-002", api_key)
 
       %{text: "hello", embedding: _embedding} =
         Embedding.Http.generate_embedding(%{text: "hello"}, params, [])
@@ -65,7 +65,7 @@ defmodule Rag.Embedding.HttpTest do
     @tag :integration_test
     test "cohere embeddings" do
       api_key = System.get_env("COHERE_API_KEY")
-      params = Params.cohere_params("embed-english-v3.0", api_key)
+      params = EmbeddingParams.cohere_params("embed-english-v3.0", api_key)
 
       %{text: "hello", embedding: _embedding} =
         Embedding.Http.generate_embedding(%{text: "hello"}, params, [])
@@ -80,7 +80,7 @@ defmodule Rag.Embedding.HttpTest do
 
       generation = Generation.new("query")
 
-      openai_params = Params.openai_params("text-embedding-3-small", "somekey")
+      openai_params = EmbeddingParams.openai_params("text-embedding-3-small", "somekey")
 
       assert Embedding.Http.generate_embedding(generation, openai_params) == %Generation{
                query: "query",
@@ -91,7 +91,7 @@ defmodule Rag.Embedding.HttpTest do
     test "returns unchanged generation when halted? is true" do
       generation = %Generation{query: "query", halted?: true}
 
-      openai_params = Params.openai_params("text-embedding-3-small", "somekey")
+      openai_params = EmbeddingParams.openai_params("text-embedding-3-small", "somekey")
 
       assert generation == Embedding.Http.generate_embedding(generation, openai_params)
     end
@@ -103,7 +103,7 @@ defmodule Rag.Embedding.HttpTest do
 
       generation = Generation.new("query")
 
-      openai_params = Params.openai_params("text-embedding-3-small", "somekey")
+      openai_params = EmbeddingParams.openai_params("text-embedding-3-small", "somekey")
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [
@@ -133,7 +133,7 @@ defmodule Rag.Embedding.HttpTest do
         %{body: %{"data" => [%{"embedding" => [1, 2, 3]}, %{"embedding" => [4, 5, 6]}]}}
       end)
 
-      openai_params = Params.openai_params("text-embedding-3-small", "somekey")
+      openai_params = EmbeddingParams.openai_params("text-embedding-3-small", "somekey")
 
       ingestion_list = [%{text: "hello"}, %{text: "hello again"}]
 
@@ -154,7 +154,7 @@ defmodule Rag.Embedding.HttpTest do
         %{body: %{"data" => [%{"embedding" => [1, 2, 3]}, %{"embedding" => [4, 5, 6]}]}}
       end)
 
-      openai_params = Params.openai_params("text-embedding-3-small", "somekey")
+      openai_params = EmbeddingParams.openai_params("text-embedding-3-small", "somekey")
 
       ingestion_list = [%{text: "hello"}, %{text: "hello again"}]
 
@@ -192,7 +192,7 @@ defmodule Rag.Embedding.HttpTest do
     @tag :integration_test
     test "openai embeddings" do
       api_key = System.get_env("OPENAI_API_KEY")
-      params = Params.openai_params("text-embedding-ada-002", api_key)
+      params = EmbeddingParams.openai_params("text-embedding-ada-002", api_key)
 
       [%{text: "hello", embedding: _embedding}] =
         Embedding.Http.generate_embeddings_batch([%{text: "hello"}], params, [])
@@ -201,7 +201,7 @@ defmodule Rag.Embedding.HttpTest do
     @tag :integration_test
     test "cohere embeddings" do
       api_key = System.get_env("COHERE_API_KEY")
-      params = Params.cohere_params("embed-english-v3.0", api_key)
+      params = EmbeddingParams.cohere_params("embed-english-v3.0", api_key)
 
       [%{text: "hello", embedding: _embedding}] =
         Embedding.Http.generate_embeddings_batch([%{text: "hello"}], params, [])

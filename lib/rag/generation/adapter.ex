@@ -3,10 +3,11 @@ defmodule Rag.Generation.Adapter do
   Behaviour for response generation.
   """
 
+  alias Rag.Generation
+
   @doc """
   Passes `generation.prompt` to the adapter using `adapter_params` to generate a response.
   Then, puts `response` in `generation`.
   """
-  @callback generate_response(generation :: Rag.Generation.t(), adapter_params :: any()) ::
-              Rag.Generation.t()
+  @callback generate_response(Generation.t(), adapter_params :: any()) :: Generation.t()
 end

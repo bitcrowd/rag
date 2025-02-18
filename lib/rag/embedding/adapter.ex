@@ -3,6 +3,8 @@ defmodule Rag.Embedding.Adapter do
   Behaviour for embedding generation.
   """
 
+  alias Rag.Generation
+
   @doc """
   Passes a text from `ingestion` to the adapter using `adapter_params` to generate an embedding.
   Then, puts the embedding in `ingestion`.
@@ -22,8 +24,7 @@ defmodule Rag.Embedding.Adapter do
   Passes `generation.query` to the adapter using `adapter_params` to generate an embedding.
   Then, puts the embedding in `generation.query_embedding`.
   """
-  @callback generate_embedding(generation :: Rag.Generation.t(), adapter_params :: any()) ::
-              Rag.Generation.t()
+  @callback generate_embedding(Generation.t(), adapter_params :: any()) :: Generation.t()
 
   @doc """
   Passes all values of `ingestions` at `text_key` to the adapter using `adapter_params` to generate all embeddings in a single batch.

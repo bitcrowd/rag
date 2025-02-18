@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Rag.GenEval do
         #{inspect(rag_module)}.query(question)
       end
 
-      openai_params = Rag.Evaluation.Http.Params.openai_params(
+      openai_params = Rag.Ai.Http.GenerationParams.openai_params(
         model: "gpt-4o-mini",
         api_key: openai_key
       )

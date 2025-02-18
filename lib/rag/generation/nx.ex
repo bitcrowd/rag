@@ -6,6 +6,7 @@ defmodule Rag.Generation.Nx do
   @behaviour Rag.Generation.Adapter
 
   alias Rag.Generation
+  alias Rag.Ai
 
   @doc """
   Passes `generation.prompt` to `serving` to generate a response.
@@ -13,23 +14,6 @@ defmodule Rag.Generation.Nx do
   """
   @impl Rag.Generation.Adapter
   @spec generate_response(Generation.t(), Nx.Serving.t()) :: Generation.t()
-  def generate_response(%Generation{halted?: true} = generation, _serving), do: generation
-
-  @impl Rag.Generation.Adapter
-  def generate_response(%Generation{prompt: nil}, _serving),
-    do: raise(ArgumentError, message: "prompt must not be nil")
-
-  @impl Rag.Generation.Adapter
-  def generate_response(%Generation{prompt: prompt} = generation, serving)
-      when is_binary(prompt) do
-    metadata = %{serving: serving, generation: generation}
-
-    :telemetry.span([:rag, :generate_response], metadata, fn ->
-      %{results: [result]} = Nx.Serving.batched_run(serving, prompt)
-
-      generation = Generation.put_response(generation, result.text)
-
-      {generation, %{metadata | generation: generation}}
-    end)
-  end
+  def generate_response(%Generation{} = generation, serving),
+    do: Generation.generate_response(generation, serving, &Ai.Nx.generate_response/2)
 end

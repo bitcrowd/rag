@@ -105,4 +105,30 @@ defmodule Rag.Generation do
   """
   @spec halt(t()) :: t()
   def halt(%Generation{} = generation), do: %{generation | halted?: true}
+
+  @type response_fn :: (String.t(), params :: any() -> String.t())
+
+  @doc """
+  Passes `generation.prompt` to the adapter using `adapter_params` to generate a response.
+  Then, puts `response` in `generation`.
+  """
+  @spec generate_response(Generation.t(), adapter_params :: any(), response_fn()) ::
+          Generation.t()
+  def generate_response(%Generation{halted?: true} = generation, _params, _response_fn),
+    do: generation
+
+  def generate_response(%Generation{prompt: nil}, _params, _response_fn),
+    do: raise(ArgumentError, message: "prompt must not be nil")
+
+  def generate_response(%Generation{} = generation, params, response_fn) do
+    metadata = %{generation: generation, params: params}
+
+    :telemetry.span([:rag, :generate_response], metadata, fn ->
+      response = response_fn.(generation.prompt, params)
+
+      generation = Generation.put_response(generation, response)
+
+      {generation, %{metadata | generation: generation}}
+    end)
+  end
 end
