@@ -8,7 +8,7 @@ defmodule Rag.EmbeddingTest do
     test "takes a string at text_key and returns ingestion map with a list of numbers at embedding_key" do
       ingestion = %{text: "hello"}
 
-      embedding_fn = fn "hello", _params -> [1, 2, 3] end
+      embedding_fn = fn "hello", _params -> {:ok, [1, 2, 3]} end
 
       assert Embedding.generate_embedding(ingestion, %{}, embedding_fn, []) == %{
                text: "hello",
@@ -19,7 +19,7 @@ defmodule Rag.EmbeddingTest do
     test "errors if text_key is not in ingestion" do
       ingestion = %{text: "hello"}
 
-      embedding_fn = fn "hello", _params -> [1, 2, 3] end
+      embedding_fn = fn "hello", _params -> {:ok, [1, 2, 3]} end
 
       assert_raise KeyError, fn ->
         Embedding.generate_embedding(ingestion, %{}, embedding_fn, text_key: :non_existing_key)
@@ -28,7 +28,7 @@ defmodule Rag.EmbeddingTest do
 
     test "emits start, stop, and exception telemetry events" do
       ingestion = %{text: "hello"}
-      embedding_fn = fn "hello", _params -> [1, 2, 3] end
+      embedding_fn = fn "hello", _params -> {:ok, [1, 2, 3]} end
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [
@@ -56,7 +56,7 @@ defmodule Rag.EmbeddingTest do
     test "takes the query from the generation, generates an embedding and puts it into query_embedding" do
       generation = %Generation{query: "query"}
 
-      embedding_fn = fn "query", _params -> [1, 2, 3] end
+      embedding_fn = fn "query", _params -> {:ok, [1, 2, 3]} end
 
       assert Embedding.generate_embedding(generation, %{}, embedding_fn) == %Generation{
                query: "query",
@@ -73,7 +73,7 @@ defmodule Rag.EmbeddingTest do
 
     test "emits start, stop, and exception telemetry events" do
       generation = Generation.new("hello")
-      embedding_fn = fn "hello", _params -> [1, 2, 3] end
+      embedding_fn = fn "hello", _params -> {:ok, [1, 2, 3]} end
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [
@@ -99,7 +99,7 @@ defmodule Rag.EmbeddingTest do
 
   describe "generate_embeddings_batch/4" do
     test "takes a string at text_key and returns ingestion map with a list of numbers at embedding_key" do
-      embedding_fn = fn ["hello", "hello again"], _params -> [[1, 2, 3], [4, 5, 6]] end
+      embedding_fn = fn ["hello", "hello again"], _params -> {:ok, [[1, 2, 3], [4, 5, 6]]} end
       ingestions = [%{text: "hello"}, %{text: "hello again"}]
 
       assert [
@@ -121,7 +121,7 @@ defmodule Rag.EmbeddingTest do
 
     test "emits start, stop, and exception telemetry events" do
       ingestions = [%{text: "hello"}, %{text: "hello again"}]
-      embedding_fn = fn ["hello", "hello again"], _params -> [[1, 2, 3], [4, 5, 6]] end
+      embedding_fn = fn ["hello", "hello again"], _params -> {:ok, [[1, 2, 3], [4, 5, 6]]} end
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [

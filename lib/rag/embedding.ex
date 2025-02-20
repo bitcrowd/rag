@@ -32,7 +32,7 @@ defmodule Rag.Embedding do
     metadata = %{ingestion: ingestion, params: params, opts: opts}
 
     :telemetry.span([:rag, :generate_embedding], metadata, fn ->
-      embedding = embedding_fn.(text, params)
+      {:ok, embedding} = embedding_fn.(text, params)
 
       ingestion = Map.put(ingestion, embedding_key, embedding)
 
@@ -51,7 +51,7 @@ defmodule Rag.Embedding do
     metadata = %{generation: generation, params: params}
 
     :telemetry.span([:rag, :generate_embedding], metadata, fn ->
-      embedding = embedding_fn.(generation.query, params)
+      {:ok, embedding} = embedding_fn.(generation.query, params)
 
       generation = Generation.put_query_embedding(generation, embedding)
 
@@ -84,7 +84,7 @@ defmodule Rag.Embedding do
     metadata = %{ingestions: ingestions, params: params, opts: opts}
 
     :telemetry.span([:rag, :generate_embeddings_batch], metadata, fn ->
-      embeddings = embedding_batch_fn.(texts, params)
+      {:ok, embeddings} = embedding_batch_fn.(texts, params)
 
       ingestions =
         Enum.zip_with(ingestions, embeddings, fn ingestion, embedding ->

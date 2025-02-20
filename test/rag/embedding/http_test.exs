@@ -8,8 +8,8 @@ defmodule Rag.Embedding.HttpTest do
 
   describe "generate_embedding/3" do
     test "takes a string at text_key and returns map with a list of numbers at embedding_key" do
-      expect(Req, :post!, fn _url, _params ->
-        %{body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}
+      expect(Req, :post, fn _url, _params ->
+        {:ok, %Req.Response{status: 200, body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}}
       end)
 
       ingestion = %{text: "hello"}
@@ -24,8 +24,8 @@ defmodule Rag.Embedding.HttpTest do
     end
 
     test "emits start, stop, and exception telemetry events" do
-      expect(Req, :post!, fn _url, _params ->
-        %{body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}
+      expect(Req, :post, fn _url, _params ->
+        {:ok, %Req.Response{status: 200, body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}}
       end)
 
       ingestion = %{text: "hello"}
@@ -44,7 +44,7 @@ defmodule Rag.Embedding.HttpTest do
       assert_received {[:rag, :generate_embedding, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :generate_embedding, :stop], ^ref, _measurement, _meta}
 
-      expect(Req, :post!, fn _url, _params -> raise "boom" end)
+      expect(Req, :post, fn _url, _params -> raise "boom" end)
 
       assert_raise RuntimeError, fn ->
         Embedding.Http.generate_embedding(ingestion, openai_params, [])
@@ -74,15 +74,17 @@ defmodule Rag.Embedding.HttpTest do
 
   describe "generate_embedding/2" do
     test "takes the query from the generation, generates an embedding and puts it into query_embedding" do
-      expect(Req, :post!, fn _url, _params ->
-        %{body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}
+      expect(Req, :post, fn _url, _params ->
+        {:ok, %Req.Response{status: 200, body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}}
       end)
 
       generation = Generation.new("query")
 
       openai_params = EmbeddingParams.openai_params("text-embedding-3-small", "somekey")
 
-      assert Embedding.Http.generate_embedding(generation, openai_params) == %Generation{
+      result = Embedding.Http.generate_embedding(generation, openai_params)
+
+      assert result == %Generation{
                query: "query",
                query_embedding: [1, 2, 3]
              }
@@ -97,8 +99,8 @@ defmodule Rag.Embedding.HttpTest do
     end
 
     test "emits start, stop, and exception telemetry events" do
-      expect(Req, :post!, fn _url, _params ->
-        %{body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}
+      expect(Req, :post, fn _url, _params ->
+        {:ok, %Req.Response{status: 200, body: %{"data" => [%{"embedding" => [1, 2, 3]}]}}}
       end)
 
       generation = Generation.new("query")
@@ -117,7 +119,7 @@ defmodule Rag.Embedding.HttpTest do
       assert_received {[:rag, :generate_embedding, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :generate_embedding, :stop], ^ref, _measurement, _meta}
 
-      expect(Req, :post!, fn _url, _params -> raise "boom" end)
+      expect(Req, :post, fn _url, _params -> raise "boom" end)
 
       assert_raise RuntimeError, fn ->
         Embedding.Http.generate_embedding(generation, openai_params)
@@ -129,29 +131,37 @@ defmodule Rag.Embedding.HttpTest do
 
   describe "generate_embeddings_batch/3" do
     test "takes a string at text_key and returns ingestion map with a list of numbers at embedding_key" do
-      expect(Req, :post!, fn _url, _params ->
-        %{body: %{"data" => [%{"embedding" => [1, 2, 3]}, %{"embedding" => [4, 5, 6]}]}}
+      expect(Req, :post, fn _url, _params ->
+        {:ok,
+         %Req.Response{
+           body: %{"data" => [%{"embedding" => [1, 2, 3]}, %{"embedding" => [4, 5, 6]}]}
+         }}
       end)
 
       openai_params = EmbeddingParams.openai_params("text-embedding-3-small", "somekey")
 
       ingestion_list = [%{text: "hello"}, %{text: "hello again"}]
 
-      assert [
+      result =
+        Embedding.Http.generate_embeddings_batch(
+          ingestion_list,
+          openai_params,
+          text_key: :text,
+          embedding_key: :embedding
+        )
+
+      assert result == [
                %{text: "hello", embedding: [1, 2, 3]},
                %{text: "hello again", embedding: [4, 5, 6]}
-             ] ==
-               Embedding.Http.generate_embeddings_batch(
-                 ingestion_list,
-                 openai_params,
-                 text_key: :text,
-                 embedding_key: :embedding
-               )
+             ]
     end
 
     test "emits start, stop, and exception telemetry events" do
-      expect(Req, :post!, fn _url, _params ->
-        %{body: %{"data" => [%{"embedding" => [1, 2, 3]}, %{"embedding" => [4, 5, 6]}]}}
+      expect(Req, :post, fn _url, _params ->
+        {:ok,
+         %Req.Response{
+           body: %{"data" => [%{"embedding" => [1, 2, 3]}, %{"embedding" => [4, 5, 6]}]}
+         }}
       end)
 
       openai_params = EmbeddingParams.openai_params("text-embedding-3-small", "somekey")
@@ -175,7 +185,7 @@ defmodule Rag.Embedding.HttpTest do
       assert_received {[:rag, :generate_embeddings_batch, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :generate_embeddings_batch, :stop], ^ref, _measurement, _meta}
 
-      expect(Req, :post!, fn _url, _params -> raise "boom" end)
+      expect(Req, :post, fn _url, _params -> raise "boom" end)
 
       assert_raise RuntimeError, fn ->
         Embedding.Http.generate_embeddings_batch(

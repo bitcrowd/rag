@@ -6,7 +6,7 @@ defmodule Rag.GenerationTest do
   describe "generate_response/3" do
     test "calls response_fn with a prompt to generate a response" do
       generation = %Generation{query: "query", prompt: "a prompt"}
-      response_fn = fn "a prompt", _params -> "a response" end
+      response_fn = fn "a prompt", _params -> {:ok, "a response"} end
 
       assert %{response: "a response"} =
                Generation.generate_response(generation, %{}, response_fn)
@@ -14,14 +14,14 @@ defmodule Rag.GenerationTest do
 
     test "returns unchanged generation when halted? is true" do
       generation = %Generation{query: "query", prompt: "a prompt", halted?: true}
-      response_fn = fn "a prompt", _params -> "a response" end
+      response_fn = fn "a prompt", _params -> {:ok, "a response"} end
 
       assert generation == Generation.generate_response(generation, %{}, response_fn)
     end
 
     test "emits start, stop, and exception telemetry events" do
       generation = %Generation{query: "query", prompt: "a prompt"}
-      response_fn = fn "a prompt", _params -> "a response" end
+      response_fn = fn "a prompt", _params -> {:ok, "a response"} end
 
       ref =
         :telemetry_test.attach_event_handlers(self(), [

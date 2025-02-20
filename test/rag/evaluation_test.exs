@@ -13,15 +13,16 @@ defmodule Rag.EvaluationTest do
       }
 
       response_fn = fn _prompt, _params ->
-        %{
-          "answer_relevance_reasoning" => "It is absolutely relevant",
-          "answer_relevance_score" => 5,
-          "context_relevance_reasoning" => "It's somewhat relevant",
-          "context_relevance_score" => 3,
-          "groundedness_reasoning" => "It's mostly grounded",
-          "groundedness_score" => 4
-        }
-        |> Jason.encode!()
+        {:ok,
+         %{
+           "answer_relevance_reasoning" => "It is absolutely relevant",
+           "answer_relevance_score" => 5,
+           "context_relevance_reasoning" => "It's somewhat relevant",
+           "context_relevance_score" => 3,
+           "groundedness_reasoning" => "It's mostly grounded",
+           "groundedness_score" => 4
+         }
+         |> Jason.encode!()}
       end
 
       assert %Generation{
@@ -59,15 +60,16 @@ defmodule Rag.EvaluationTest do
       }
 
       response_fn = fn _prompt, _params ->
-        %{
-          "answer_relevance_reasoning" => "It is absolutely relevant",
-          "answer_relevance_score" => 5,
-          "context_relevance_reasoning" => "It's somewhat relevant",
-          "context_relevance_score" => 3,
-          "groundedness_reasoning" => "It's mostly grounded",
-          "groundedness_score" => 4
-        }
-        |> Jason.encode!()
+        {:ok,
+         %{
+           "answer_relevance_reasoning" => "It is absolutely relevant",
+           "answer_relevance_score" => 5,
+           "context_relevance_reasoning" => "It's somewhat relevant",
+           "context_relevance_score" => 3,
+           "groundedness_reasoning" => "It's mostly grounded",
+           "groundedness_score" => 4
+         }
+         |> Jason.encode!()}
       end
 
       ref =
@@ -98,7 +100,7 @@ defmodule Rag.EvaluationTest do
       context = "some context"
       response = "this is something completely unrelated"
 
-      response_fn = fn _prompt, _params -> "NO way" end
+      response_fn = fn _prompt, _params -> {:ok, "NO way"} end
 
       assert %Generation{evaluations: %{hallucination: true}} =
                Evaluation.detect_hallucination(
@@ -117,7 +119,7 @@ defmodule Rag.EvaluationTest do
       context = "some context"
       response = "this is something completely unrelated"
 
-      response_fn = fn _prompt, _params -> "YES" end
+      response_fn = fn _prompt, _params -> {:ok, "YES"} end
 
       assert %Generation{evaluations: %{hallucination: false}} =
                Evaluation.detect_hallucination(
@@ -153,7 +155,7 @@ defmodule Rag.EvaluationTest do
       context = "some context"
       response = "not relevant in this test"
 
-      response_fn = fn _prompt, _params -> "not relevant" end
+      response_fn = fn _prompt, _params -> {:ok, "not relevant"} end
 
       generation = %Generation{query: query, context: context, response: response}
 

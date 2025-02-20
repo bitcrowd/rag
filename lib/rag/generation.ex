@@ -124,7 +124,7 @@ defmodule Rag.Generation do
     metadata = %{generation: generation, params: params}
 
     :telemetry.span([:rag, :generate_response], metadata, fn ->
-      response = response_fn.(generation.prompt, params)
+      {:ok, response} = response_fn.(generation.prompt, params)
 
       generation = Generation.put_response(generation, response)
 

@@ -7,8 +7,12 @@ defmodule Rag.Generation.HttpTest do
 
   describe "generate_response/2" do
     test "calls an HTTP API with a prompt to generate a response" do
-      expect(Req, :post!, fn _url, _params ->
-        %{body: %{"choices" => [%{"index" => 0, "message" => %{"content" => "a response"}}]}}
+      expect(Req, :post, fn _url, _params ->
+        {:ok,
+         %Req.Response{
+           status: 200,
+           body: %{"choices" => [%{"index" => 0, "message" => %{"content" => "a response"}}]}
+         }}
       end)
 
       params = GenerationParams.openai_params("openai_model", "somekey")

@@ -66,7 +66,8 @@ defmodule Rag.Evaluation do
     metadata = %{generation: generation, params: params}
 
     :telemetry.span([:rag, :evaluate_rag_triad], metadata, fn ->
-      evaluation = response_fn.(prompt, params) |> Jason.decode!()
+      {:ok, evaluation} = response_fn.(prompt, params)
+      evaluation = Jason.decode!(evaluation)
 
       generation = Generation.put_evaluation(generation, :rag_triad, evaluation)
 
@@ -108,7 +109,7 @@ defmodule Rag.Evaluation do
     metadata = %{generation: generation, params: params}
 
     :telemetry.span([:rag, :detect_hallucination], metadata, fn ->
-      response = response_fn.(prompt, params)
+      {:ok, response} = response_fn.(prompt, params)
 
       hallucination? = response != "YES"
 

@@ -58,7 +58,7 @@ defmodule Rag.Generation.NxTest do
 
       expect(Nx.Serving, :batched_run, fn _serving, _prompt -> raise "boom" end)
 
-      assert_raise RuntimeError, fn ->
+      assert_raise MatchError, fn ->
         Generation.Nx.generate_response(generation, TestServing)
       end
 

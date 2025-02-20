@@ -8,27 +8,29 @@ defmodule Rag.Evaluation.HttpTest do
 
   describe "evaluate_rag_triad/2" do
     test "takes a query, context, and response and returns an evaluation with scores and reasoning" do
-      expect(Req, :post!, fn _url, _params ->
-        %{
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" =>
-                    %{
-                      "answer_relevance_reasoning" => "It is absolutely relevant",
-                      "answer_relevance_score" => 5,
-                      "context_relevance_reasoning" => "It's somewhat relevant",
-                      "context_relevance_score" => 3,
-                      "groundedness_reasoning" => "It's mostly grounded",
-                      "groundedness_score" => 4
-                    }
-                    |> Jason.encode!()
-                }
-              }
-            ]
-          }
-        }
+      expect(Req, :post, fn _url, _params ->
+        {:ok,
+         %Req.Response{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     %{
+                       "answer_relevance_reasoning" => "It is absolutely relevant",
+                       "answer_relevance_score" => 5,
+                       "context_relevance_reasoning" => "It's somewhat relevant",
+                       "context_relevance_score" => 3,
+                       "groundedness_reasoning" => "It's mostly grounded",
+                       "groundedness_score" => 4
+                     }
+                     |> Jason.encode!()
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       generation = %Generation{
@@ -60,8 +62,12 @@ defmodule Rag.Evaluation.HttpTest do
 
   describe "detect_hallucination/2" do
     test "sets evaluation `:hallucination` to true if response does not equal \"YES\"" do
-      expect(Req, :post!, fn _url, _params ->
-        %{body: %{"choices" => [%{"index" => 0, "message" => %{"content" => "NO way"}}]}}
+      expect(Req, :post, fn _url, _params ->
+        {:ok,
+         %Req.Response{
+           status: 200,
+           body: %{"choices" => [%{"index" => 0, "message" => %{"content" => "NO way"}}]}
+         }}
       end)
 
       query = "an important query"
