@@ -9,12 +9,12 @@ defmodule Rag.RetrievalTest do
     test "calls the retrieval_function and returns its result" do
       fun = fn state ->
         assert state == %Generation{query: "query?"}
-        "hello, you called me"
+        {:ok, "hello, you called me"}
       end
 
       generation = %Generation{query: "query?"}
 
-      assert Rag.Retrieval.retrieve(generation, :result, &fun.(&1)) == %Generation{
+      assert Retrieval.retrieve(generation, :result, &fun.(&1)) == %Generation{
                query: "query?",
                retrieval_results: %{
                  result: "hello, you called me"
@@ -25,13 +25,13 @@ defmodule Rag.RetrievalTest do
     test "returns unchanged generation when halted? is true" do
       generation = %Generation{query: "query?", halted?: true}
 
-      assert generation == Rag.Retrieval.retrieve(generation, :result, fn _ -> "ignored" end)
+      assert generation == Retrieval.retrieve(generation, :result, fn _ -> "ignored" end)
     end
 
     test "emits start, stop, and exception events" do
       fun = fn state ->
         assert state == %Generation{query: "query?"}
-        "hello, you called me"
+        {:ok, "hello, you called me"}
       end
 
       generation = %Generation{query: "query?"}
@@ -43,7 +43,7 @@ defmodule Rag.RetrievalTest do
           [:rag, :retrieve, :exception]
         ])
 
-      Rag.Retrieval.retrieve(generation, :out, &fun.(&1))
+      Retrieval.retrieve(generation, :out, &fun.(&1))
 
       assert_received {[:rag, :retrieve, :start], ^ref, _measurement, _meta}
       assert_received {[:rag, :retrieve, :stop], ^ref, _measurement, _meta}
@@ -51,10 +51,19 @@ defmodule Rag.RetrievalTest do
       failing_function = fn _state -> raise "boom" end
 
       assert_raise RuntimeError, fn ->
-        Rag.Retrieval.retrieve(generation, :out, &failing_function.(&1))
+        Retrieval.retrieve(generation, :out, &failing_function.(&1))
       end
 
       assert_received {[:rag, :retrieve, :exception], ^ref, _measurement, _meta}
+    end
+
+    test "when retrieval_function returns error tuple an error is set, the retrieval_result is nil but doesn't halt" do
+      generation = %Generation{query: "query?"}
+
+      error_fn = fn _generation -> {:error, "some weird error"} end
+
+      assert %{halted?: false, errors: ["some weird error"], retrieval_results: %{out: nil}} =
+               Retrieval.retrieve(generation, :out, error_fn)
     end
   end
 

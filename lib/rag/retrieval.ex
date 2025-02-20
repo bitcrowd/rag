@@ -7,7 +7,7 @@ defmodule Rag.Retrieval do
 
   @doc """
   Calls `retrieval_function` with `generation` as only argument.
-  `retrieval_function` must return only the retrieval result.
+  `retrieval_function` must return either {:ok, retrieval_result} or {:error, reason}.
   """
   @spec retrieve(
           Generation.t(),
@@ -21,9 +21,16 @@ defmodule Rag.Retrieval do
     metadata = %{generation: generation}
 
     :telemetry.span([:rag, :retrieve], metadata, fn ->
-      result = retrieval_function.(generation)
+      generation =
+        case retrieval_function.(generation) do
+          {:ok, result} ->
+            Generation.put_retrieval_result(generation, result_key, result)
 
-      generation = Generation.put_retrieval_result(generation, result_key, result)
+          {:error, error} ->
+            generation
+            |> Generation.put_retrieval_result(result_key, nil)
+            |> Generation.add_error(error)
+        end
 
       {generation, %{metadata | generation: generation}}
     end)

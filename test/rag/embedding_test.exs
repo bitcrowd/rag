@@ -95,6 +95,14 @@ defmodule Rag.EmbeddingTest do
 
       assert_received {[:rag, :generate_embedding, :exception], ^ref, _measurement, _meta}
     end
+
+    test "halts and sets error when embedding_fn returns error tuple" do
+      generation = Generation.new("hello")
+      error_fn = fn _text, _params -> {:error, "some weird error"} end
+
+      assert %{halted?: true, errors: ["some weird error"]} =
+               Embedding.generate_embedding(generation, %{}, error_fn)
+    end
   end
 
   describe "generate_embeddings_batch/4" do

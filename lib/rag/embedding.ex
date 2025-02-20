@@ -51,9 +51,11 @@ defmodule Rag.Embedding do
     metadata = %{generation: generation, params: params}
 
     :telemetry.span([:rag, :generate_embedding], metadata, fn ->
-      {:ok, embedding} = embedding_fn.(generation.query, params)
-
-      generation = Generation.put_query_embedding(generation, embedding)
+      generation =
+        case embedding_fn.(generation.query, params) do
+          {:ok, embedding} -> Generation.put_query_embedding(generation, embedding)
+          {:error, error} -> generation |> Generation.add_error(error) |> Generation.halt()
+        end
 
       {generation, %{metadata | generation: generation}}
     end)

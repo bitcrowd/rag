@@ -16,7 +16,8 @@ defmodule Rag.Generation do
           prompt: String.t(),
           response: String.t(),
           evaluations: %{atom() => any},
-          halted?: boolean()
+          halted?: boolean(),
+          errors: list(any())
         }
 
   @enforce_keys [:query]
@@ -28,7 +29,8 @@ defmodule Rag.Generation do
             prompt: nil,
             response: nil,
             evaluations: %{},
-            halted?: false
+            halted?: false,
+            errors: []
 
   @doc """
   Creates a new generation struct from a query.
@@ -106,6 +108,13 @@ defmodule Rag.Generation do
   @spec halt(t()) :: t()
   def halt(%Generation{} = generation), do: %{generation | halted?: true}
 
+  @doc """
+  Appends an error to the existing list of errors.
+  """
+  @spec add_error(t(), any()) :: t()
+  def add_error(%Generation{} = generation, error),
+    do: update_in(generation.errors, fn errors -> [error | errors] end)
+
   @type response_fn :: (String.t(), params :: any() -> String.t())
 
   @doc """
@@ -124,9 +133,11 @@ defmodule Rag.Generation do
     metadata = %{generation: generation, params: params}
 
     :telemetry.span([:rag, :generate_response], metadata, fn ->
-      {:ok, response} = response_fn.(generation.prompt, params)
-
-      generation = Generation.put_response(generation, response)
+      generation =
+        case response_fn.(generation.prompt, params) do
+          {:ok, response} -> Generation.put_response(generation, response)
+          {:error, error} -> generation |> Generation.add_error(error) |> Generation.halt()
+        end
 
       {generation, %{metadata | generation: generation}}
     end)

@@ -43,5 +43,13 @@ defmodule Rag.GenerationTest do
 
       assert_received {[:rag, :generate_response, :exception], ^ref, _measurement, _meta}
     end
+
+    test "halts and sets error when response_fn returns error tuple" do
+      generation = %Generation{query: "query", prompt: "a prompt"}
+      error_fn = fn _prompt, _params -> {:error, "some weird error"} end
+
+      assert %{halted?: true, errors: ["some weird error"]} =
+               Generation.generate_response(generation, %{}, error_fn)
+    end
   end
 end

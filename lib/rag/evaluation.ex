@@ -66,10 +66,16 @@ defmodule Rag.Evaluation do
     metadata = %{generation: generation, params: params}
 
     :telemetry.span([:rag, :evaluate_rag_triad], metadata, fn ->
-      {:ok, evaluation} = response_fn.(prompt, params)
-      evaluation = Jason.decode!(evaluation)
+      generation =
+        case response_fn.(prompt, params) do
+          {:ok, evaluation} ->
+            evaluation = Jason.decode!(evaluation)
 
-      generation = Generation.put_evaluation(generation, :rag_triad, evaluation)
+            Generation.put_evaluation(generation, :rag_triad, evaluation)
+
+          {:error, error} ->
+            generation |> Generation.add_error(error) |> Generation.halt()
+        end
 
       {generation, %{metadata | generation: generation}}
     end)
@@ -109,11 +115,16 @@ defmodule Rag.Evaluation do
     metadata = %{generation: generation, params: params}
 
     :telemetry.span([:rag, :detect_hallucination], metadata, fn ->
-      {:ok, response} = response_fn.(prompt, params)
+      generation =
+        case response_fn.(prompt, params) do
+          {:ok, response} ->
+            hallucination? = response != "YES"
 
-      hallucination? = response != "YES"
+            Generation.put_evaluation(generation, :hallucination, hallucination?)
 
-      generation = Generation.put_evaluation(generation, :hallucination, hallucination?)
+          {:error, error} ->
+            generation |> Generation.add_error(error) |> Generation.halt()
+        end
 
       {generation, %{metadata | generation: generation}}
     end)

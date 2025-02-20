@@ -92,6 +92,19 @@ defmodule Rag.EvaluationTest do
 
       assert_received {[:rag, :evaluate_rag_triad, :exception], ^ref, _measurement, _meta}
     end
+
+    test "halts and sets error when response_fn returns error tuple" do
+      generation = %Generation{
+        query: "What's with this?",
+        context: "This is a test",
+        response: "It's a test"
+      }
+
+      error_fn = fn _prompt, _params -> {:error, "some weird error"} end
+
+      assert %{halted?: true, errors: ["some weird error"]} =
+               Evaluation.evaluate_rag_triad(generation, %{}, error_fn)
+    end
   end
 
   describe "detect_hallucination/3" do
@@ -178,6 +191,19 @@ defmodule Rag.EvaluationTest do
       end
 
       assert_received {[:rag, :detect_hallucination, :exception], ^ref, _measurement, _meta}
+    end
+
+    test "halts and sets error when response_fn returns error tuple" do
+      generation = %Generation{
+        query: "What's with this?",
+        context: "This is a test",
+        response: "It's a test"
+      }
+
+      error_fn = fn _prompt, _params -> {:error, "some weird error"} end
+
+      assert %{halted?: true, errors: ["some weird error"]} =
+               Evaluation.detect_hallucination(generation, %{}, error_fn)
     end
   end
 end
