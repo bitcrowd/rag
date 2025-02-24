@@ -6,8 +6,8 @@ defmodule Rag.Embedding do
   alias Rag.Generation
 
   @type embedding :: list(number())
-  @type embedding_fn :: (String.t(), params :: any() -> embedding())
-  @type embedding_batch_fn :: (list(String.t()), params :: any() -> list(embedding()))
+  @type embedding_function :: (String.t(), params :: any() -> embedding())
+  @type embedding_batch_function :: (list(String.t()), params :: any() -> list(embedding()))
 
   @doc """
   Passes a text from `ingestion` to the adapter using `params` to generate an embedding.
@@ -18,11 +18,11 @@ defmodule Rag.Embedding do
    * `text_key`: key which holds the text that is used to generate the embedding. Default: `:text`
    * `embedding_key`: key where the generated embedding is stored. Default: `:embedding`
   """
-  @spec generate_embedding(map(), params :: any(), embedding_fn(), opts :: keyword()) :: %{
+  @spec generate_embedding(map(), params :: any(), embedding_function(), opts :: keyword()) :: %{
           atom() => embedding(),
           optional(any) => any
         }
-  def generate_embedding(ingestion, params, embedding_fn, opts) do
+  def generate_embedding(ingestion, params, embedding_function, opts) do
     opts = Keyword.validate!(opts, text_key: :text, embedding_key: :embedding)
     text_key = opts[:text_key]
     embedding_key = opts[:embedding_key]
@@ -32,7 +32,7 @@ defmodule Rag.Embedding do
     metadata = %{ingestion: ingestion, params: params, opts: opts}
 
     :telemetry.span([:rag, :generate_embedding], metadata, fn ->
-      {:ok, embedding} = embedding_fn.(text, params)
+      {:ok, embedding} = embedding_function.(text, params)
 
       ingestion = Map.put(ingestion, embedding_key, embedding)
 
@@ -44,15 +44,16 @@ defmodule Rag.Embedding do
   Passes `generation.query` to the adapter using `params` to generate an embedding.
   Then, puts the embedding in `generation.query_embedding`.
   """
-  @spec generate_embedding(Generation.t(), params :: any(), embedding_fn()) :: Generation.t()
+  @spec generate_embedding(Generation.t(), params :: any(), embedding_function()) ::
+          Generation.t()
   def generate_embedding(%Generation{halted?: true} = generation, _params, _fn), do: generation
 
-  def generate_embedding(%Generation{} = generation, params, embedding_fn) do
+  def generate_embedding(%Generation{} = generation, params, embedding_function) do
     metadata = %{generation: generation, params: params}
 
     :telemetry.span([:rag, :generate_embedding], metadata, fn ->
       generation =
-        case embedding_fn.(generation.query, params) do
+        case embedding_function.(generation.query, params) do
           {:ok, embedding} -> Generation.put_query_embedding(generation, embedding)
           {:error, error} -> generation |> Generation.add_error(error) |> Generation.halt()
         end
@@ -73,10 +74,10 @@ defmodule Rag.Embedding do
   @spec generate_embeddings_batch(
           list(map()),
           params :: any(),
-          embedding_batch_fn(),
+          embedding_batch_function(),
           opts :: keyword()
         ) :: list(%{atom() => embedding(), optional(any) => any})
-  def generate_embeddings_batch(ingestions, params, embedding_batch_fn, opts) do
+  def generate_embeddings_batch(ingestions, params, embedding_batch_function, opts) do
     opts = Keyword.validate!(opts, text_key: :text, embedding_key: :embedding)
     text_key = opts[:text_key]
     embedding_key = opts[:embedding_key]
@@ -86,7 +87,7 @@ defmodule Rag.Embedding do
     metadata = %{ingestions: ingestions, params: params, opts: opts}
 
     :telemetry.span([:rag, :generate_embeddings_batch], metadata, fn ->
-      {:ok, embeddings} = embedding_batch_fn.(texts, params)
+      {:ok, embeddings} = embedding_batch_function.(texts, params)
 
       ingestions =
         Enum.zip_with(ingestions, embeddings, fn ingestion, embedding ->

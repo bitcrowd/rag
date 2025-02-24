@@ -5,14 +5,16 @@ defmodule Rag.Retrieval do
 
   alias Rag.Generation
 
+  @type retrieval_function :: (Generation.t() ->
+                                 {:ok, result :: any()} | {:error, error :: any()})
   @doc """
   Calls `retrieval_function` with `generation` as only argument.
-  `retrieval_function` must return either {:ok, retrieval_result} or {:error, reason}.
+  `retrieval_function` must return either {:ok, retrieval_result} or {:error, error}.
   """
   @spec retrieve(
           Generation.t(),
           result_key :: atom(),
-          (Generation.t() -> any())
+          retrieval_function()
         ) :: Generation.t()
   def retrieve(%Generation{halted?: true} = generation, _result_key, _retrieval_function),
     do: generation

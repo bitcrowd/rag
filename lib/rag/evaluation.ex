@@ -5,7 +5,7 @@ defmodule Rag.Evaluation do
 
   alias Rag.Generation
 
-  @type response_fn :: (String.t(), params :: any() -> String.t())
+  @type response_function :: (String.t(), params :: any() -> String.t())
 
   @doc """
   Evaluates the response, query, and context according to the [RAG triad](https://www.trulens.org/getting_started/core_concepts/rag_triad/).
@@ -15,12 +15,12 @@ defmodule Rag.Evaluation do
 
   Prompts from https://github.com/truera/trulens/blob/main/src/feedback/trulens/feedback/prompts.py
   """
-  @spec evaluate_rag_triad(Generation.t(), params :: any(), response_fn()) ::
+  @spec evaluate_rag_triad(Generation.t(), params :: any(), response_function()) ::
           Generation.t()
-  def evaluate_rag_triad(%Generation{halted?: true} = generation, _params, _response_fn),
+  def evaluate_rag_triad(%Generation{halted?: true} = generation, _params, _response_function),
     do: generation
 
-  def evaluate_rag_triad(%Generation{} = generation, params, response_fn) do
+  def evaluate_rag_triad(%Generation{} = generation, params, response_function) do
     %{response: response, query: query, context: context} = generation
 
     prompt = """
@@ -67,7 +67,7 @@ defmodule Rag.Evaluation do
 
     :telemetry.span([:rag, :evaluate_rag_triad], metadata, fn ->
       generation =
-        case response_fn.(prompt, params) do
+        case response_function.(prompt, params) do
           {:ok, evaluation} ->
             evaluation = Jason.decode!(evaluation)
 
@@ -82,19 +82,19 @@ defmodule Rag.Evaluation do
   end
 
   @doc """
-  Takes the values of `query`, `response` and `context` from `generation` and passes it to the adapter using `params` to detect potential hallucinations.
+  Takes the values of `query`, `response` and `context` from `generation`, constructs a prompt and passes it  together with `params` to `response_function` to detect potential hallucinations.
   Then, puts a new `hallucination` evaluation in `generation.evaluations`.
   """
-  @spec detect_hallucination(Generation.t(), params :: any(), response_fn()) ::
+  @spec detect_hallucination(Generation.t(), params :: any(), response_function()) ::
           Generation.t()
   def detect_hallucination(
         %Generation{halted?: true} = generation,
         _params,
-        _response_fn
+        _response_function
       ),
       do: generation
 
-  def detect_hallucination(%Generation{} = generation, params, response_fn) do
+  def detect_hallucination(%Generation{} = generation, params, response_function) do
     %{query: query, response: response, context: context} = generation
 
     prompt =
@@ -116,7 +116,7 @@ defmodule Rag.Evaluation do
 
     :telemetry.span([:rag, :detect_hallucination], metadata, fn ->
       generation =
-        case response_fn.(prompt, params) do
+        case response_function.(prompt, params) do
           {:ok, response} ->
             hallucination? = response != "YES"
 

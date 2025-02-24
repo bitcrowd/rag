@@ -115,26 +115,26 @@ defmodule Rag.Generation do
   def add_error(%Generation{} = generation, error),
     do: update_in(generation.errors, fn errors -> [error | errors] end)
 
-  @type response_fn :: (String.t(), params :: any() -> String.t())
+  @type response_function :: (String.t(), params :: any() -> String.t())
 
   @doc """
-  Passes `generation.prompt` to the adapter using `adapter_params` to generate a response.
-  Then, puts `response` in `generation`.
+  Passes `generation.prompt` and `params` to `response_function` to generate a response.
+  If successful, puts the result in `generation.response`.
   """
-  @spec generate_response(Generation.t(), adapter_params :: any(), response_fn()) ::
+  @spec generate_response(Generation.t(), params :: any(), response_function()) ::
           Generation.t()
-  def generate_response(%Generation{halted?: true} = generation, _params, _response_fn),
+  def generate_response(%Generation{halted?: true} = generation, _params, _response_function),
     do: generation
 
-  def generate_response(%Generation{prompt: nil}, _params, _response_fn),
+  def generate_response(%Generation{prompt: nil}, _params, _response_function),
     do: raise(ArgumentError, message: "prompt must not be nil")
 
-  def generate_response(%Generation{} = generation, params, response_fn) do
+  def generate_response(%Generation{} = generation, params, response_function) do
     metadata = %{generation: generation, params: params}
 
     :telemetry.span([:rag, :generate_response], metadata, fn ->
       generation =
-        case response_fn.(generation.prompt, params) do
+        case response_function.(generation.prompt, params) do
           {:ok, response} -> Generation.put_response(generation, response)
           {:error, error} -> generation |> Generation.add_error(error) |> Generation.halt()
         end
