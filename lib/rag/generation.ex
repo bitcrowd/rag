@@ -1,8 +1,11 @@
 defmodule Rag.Generation do
   @moduledoc """
-  Functions to work with a generation struct.
+  Functions to generate a response and helpers to work with a generation struct.
   """
   alias Rag.Generation
+
+  @type response_function :: (String.t(), keyword() -> String.t())
+  @type provider :: struct()
 
   @typedoc """
   Represents a generation, the main datastructure in `rag`.
@@ -115,26 +118,27 @@ defmodule Rag.Generation do
   def add_error(%Generation{} = generation, error),
     do: update_in(generation.errors, fn errors -> [error | errors] end)
 
-  @type response_function :: (String.t(), params :: any() -> String.t())
-
   @doc """
-  Passes `generation.prompt` and `params` to `response_function` to generate a response.
+  Passes `generation.prompt` to `response_function` or `provider` to generate a response.
   If successful, puts the result in `generation.response`.
   """
-  @spec generate_response(Generation.t(), params :: any(), response_function()) ::
-          Generation.t()
-  def generate_response(%Generation{halted?: true} = generation, _params, _response_function),
+  @spec generate_response(Generation.t(), response_function() | provider()) :: Generation.t()
+  def generate_response(%Generation{halted?: true} = generation, _response_function),
     do: generation
 
-  def generate_response(%Generation{prompt: nil}, _params, _response_function),
+  def generate_response(%Generation{prompt: nil}, _response_function),
     do: raise(ArgumentError, message: "prompt must not be nil")
 
-  def generate_response(%Generation{} = generation, params, response_function) do
-    metadata = %{generation: generation, params: params}
+  def generate_response(%Generation{} = generation, %provider_module{} = provider) do
+    generate_response(generation, &provider_module.generate_text(provider, &1, &2))
+  end
+
+  def generate_response(%Generation{} = generation, response_function) do
+    metadata = %{generation: generation}
 
     :telemetry.span([:rag, :generate_response], metadata, fn ->
       generation =
-        case response_function.(generation.prompt, params) do
+        case response_function.(generation.prompt, []) do
           {:ok, response} -> Generation.put_response(generation, response)
           {:error, error} -> generation |> Generation.add_error(error) |> Generation.halt()
         end

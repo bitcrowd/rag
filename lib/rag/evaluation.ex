@@ -1,11 +1,12 @@
 defmodule Rag.Evaluation do
   @moduledoc """
-  Common structure for evaluations.
+  Functions to evaluate generations.
   """
 
   alias Rag.Generation
 
-  @type response_function :: (String.t(), params :: any() -> String.t())
+  @type response_function :: (String.t(), opts :: keyword() -> String.t())
+  @type provider :: struct()
 
   @doc """
   Evaluates the response, query, and context according to the [RAG triad](https://www.trulens.org/getting_started/core_concepts/rag_triad/).
@@ -15,12 +16,16 @@ defmodule Rag.Evaluation do
 
   Prompts from https://github.com/truera/trulens/blob/main/src/feedback/trulens/feedback/prompts.py
   """
-  @spec evaluate_rag_triad(Generation.t(), params :: any(), response_function()) ::
-          Generation.t()
-  def evaluate_rag_triad(%Generation{halted?: true} = generation, _params, _response_function),
+  @spec evaluate_rag_triad(Generation.t(), response_function() | provider()) :: Generation.t()
+  def evaluate_rag_triad(%Generation{halted?: true} = generation, _response_function),
     do: generation
 
-  def evaluate_rag_triad(%Generation{} = generation, params, response_function) do
+  def evaluate_rag_triad(%Generation{} = generation, %provider_module{} = provider) do
+    evaluate_rag_triad(generation, &provider_module.generate_text(provider, &1, &2))
+  end
+
+  def evaluate_rag_triad(%Generation{} = generation, response_function)
+      when is_function(response_function, 2) do
     %{response: response, query: query, context: context} = generation
 
     prompt = """
@@ -63,11 +68,40 @@ defmodule Rag.Evaluation do
     Score 5: The response is completely relevant to the query.
     """
 
-    metadata = %{generation: generation, params: params}
+    response_format =
+      %{
+        type: :json_schema,
+        json_schema: %{
+          name: :evaluation_schema,
+          strict: true,
+          schema: %{
+            type: :object,
+            properties: %{
+              context_relevance_reasoning: %{type: :string},
+              context_relevance_score: %{type: :integer},
+              groundedness_reasoning: %{type: :string},
+              groundedness_score: %{type: :integer},
+              answer_relevance_reasoning: %{type: :string},
+              answer_relevance_score: %{type: :integer}
+            },
+            additionalProperties: false,
+            required: [
+              :context_relevance_reasoning,
+              :context_relevance_score,
+              :groundedness_reasoning,
+              :groundedness_score,
+              :answer_relevance_reasoning,
+              :answer_relevance_score
+            ]
+          }
+        }
+      }
+
+    metadata = %{generation: generation}
 
     :telemetry.span([:rag, :evaluate_rag_triad], metadata, fn ->
       generation =
-        case response_function.(prompt, params) do
+        case response_function.(prompt, response_format: response_format) do
           {:ok, evaluation} ->
             evaluation = Jason.decode!(evaluation)
 
@@ -82,19 +116,18 @@ defmodule Rag.Evaluation do
   end
 
   @doc """
-  Takes the values of `query`, `response` and `context` from `generation`, constructs a prompt and passes it  together with `params` to `response_function` to detect potential hallucinations.
+  Takes the values of `query`, `response` and `context` from `generation`, conproviders a prompt and passes it to `response_function` or `provider` to detect potential hallucinations.
   Then, puts a new `hallucination` evaluation in `generation.evaluations`.
   """
-  @spec detect_hallucination(Generation.t(), params :: any(), response_function()) ::
-          Generation.t()
-  def detect_hallucination(
-        %Generation{halted?: true} = generation,
-        _params,
-        _response_function
-      ),
-      do: generation
+  @spec detect_hallucination(Generation.t(), response_function() | provider()) :: Generation.t()
+  def detect_hallucination(%Generation{halted?: true} = generation, _provider), do: generation
 
-  def detect_hallucination(%Generation{} = generation, params, response_function) do
+  def detect_hallucination(%Generation{} = generation, %provider_module{} = provider) do
+    detect_hallucination(generation, &provider_module.generate_text(provider, &1, &2))
+  end
+
+  def detect_hallucination(%Generation{} = generation, response_function)
+      when is_function(response_function, 2) do
     %{query: query, response: response, context: context} = generation
 
     prompt =
@@ -112,11 +145,11 @@ defmodule Rag.Evaluation do
       output:
       """
 
-    metadata = %{generation: generation, params: params}
+    metadata = %{generation: generation}
 
     :telemetry.span([:rag, :detect_hallucination], metadata, fn ->
       generation =
-        case response_function.(prompt, params) do
+        case response_function.(prompt, []) do
           {:ok, response} ->
             hallucination? = response != "YES"
 

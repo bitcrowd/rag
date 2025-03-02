@@ -3,11 +3,15 @@ defmodule Rag.Generation.NxTest do
   use Mimic
 
   alias Rag.Generation
+  alias Rag.Ai
+
+  setup do
+    %{provider: Ai.Nx.new(%{})}
+  end
 
   describe "generate_response/2" do
-    test "calls `serving` with prompt to generate a response" do
-      expect(Nx.Serving, :batched_run, fn serving, prompt ->
-        assert serving == TestServing
+    test "calls `serving` with prompt to generate a response", %{provider: provider} do
+      expect(Nx.Serving, :batched_run, fn _serving, prompt ->
         assert prompt == "a prompt"
         %{results: [%{text: "a response"}]}
       end)
@@ -17,18 +21,18 @@ defmodule Rag.Generation.NxTest do
 
       generation = %Generation{query: query, prompt: prompt}
 
-      assert %{response: "a response"} = Generation.Nx.generate_response(generation, TestServing)
+      assert %{response: "a response"} = Generation.generate_response(generation, provider)
     end
 
-    test "returns unchanged generation when halted? is true" do
+    test "returns unchanged generation when halted? is true", %{provider: provider} do
       generation = %Generation{query: "a query", prompt: "a prompt", halted?: true}
 
-      assert generation == Generation.Nx.generate_response(generation, TestServing)
+      assert generation == Generation.generate_response(generation, provider)
     end
 
-    test "errors if prompt not present" do
+    test "errors if prompt not present", %{provider: provider} do
       assert_raise ArgumentError, fn ->
-        Generation.Nx.generate_response(%Generation{query: "a query"}, TestServing)
+        Generation.generate_response(%Generation{query: "a query"}, provider)
       end
     end
   end

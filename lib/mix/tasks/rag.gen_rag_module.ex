@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Rag.GenRagModule do
   use Igniter.Mix.Task
 
-  @example "mix rag.gen_rag_module pgvector"
+  @example "mix rag.gen_rag_module --vector-store \"pgvector\""
 
   @shortdoc "Generates a module containing RAG related code"
   @moduledoc """
@@ -65,10 +65,12 @@ defmodule Mix.Tasks.Rag.GenRagModule do
       rag_module,
       """
       alias #{inspect(repo_module)}
-      alias Rag.{Embedding, Generation, Retrieval}
+      alias Rag.{Ai, Embedding, Generation, Retrieval}
 
       import Ecto.Query
       import Pgvector.Ecto.Query
+
+      @provider Ai.Nx.new(%{embeddings_serving: Rag.EmbeddingServing, text_serving: Rag.LLMServing})
 
       def ingest(path) do
         path
@@ -93,7 +95,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
         chunks =
           ingestions
           |> Enum.flat_map(&chunk_text(&1, :document))
-          |> Embedding.Nx.generate_embeddings_batch(Rag.EmbeddingServing, text_key: :chunk, embedding_key: :embedding)
+          |> Embedding.generate_embeddings_batch(@provider, text_key: :chunk, embedding_key: :embedding)
           |> Enum.map(&to_chunk(&1))
 
         Repo.insert_all(#{inspect(schema_module)}, chunks)
@@ -109,7 +111,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
       def query(query) do
         generation =
           Generation.new(query)
-          |> Embedding.Nx.generate_embedding(Rag.EmbeddingServing)
+          |> Embedding.generate_embedding(@provider)
           |> Retrieval.retrieve(:fulltext_results, fn generation -> query_fulltext(generation) end)
           |> Retrieval.retrieve(:semantic_results, fn generation ->
             query_with_pgvector(generation)
@@ -134,7 +136,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
         |> Generation.put_context(context)
         |> Generation.put_context_sources(context_sources)
         |> Generation.put_prompt(prompt)
-        |> Generation.Nx.generate_response(Rag.LLMServing)
+        |> Generation.generate_response(@provider)
       end
 
       defp to_chunk(ingestion) do
@@ -146,23 +148,23 @@ defmodule Mix.Tasks.Rag.GenRagModule do
       end
 
       defp query_with_pgvector(%{query_embedding: query_embedding}, limit \\\\ 3) do
-        Repo.all(
+        {:ok, Repo.all(
           from(c in #{inspect(schema_module)},
             order_by: l2_distance(c.embedding, ^Pgvector.new(query_embedding)),
             limit: ^limit
           )
-        )
+        )}
       end
 
       defp query_fulltext(%{query: query}, limit \\\\ 3) do
         query = query |> String.trim() |> String.replace(" ", " & ")
 
-        Repo.all(
+        {:ok, Repo.all(
           from(c in #{inspect(schema_module)},
             where: fragment("to_tsvector(?) @@ to_tsquery(?)", c.document, ^query),
             limit: ^limit
           )
-        )
+        )}
       end
 
       defp smollm_prompt(query, context) do
@@ -198,7 +200,9 @@ defmodule Mix.Tasks.Rag.GenRagModule do
       igniter,
       rag_module,
       """
-      alias Rag.{Embedding, Generation, Retrieval}
+      alias Rag.{Ai, Embedding, Generation, Retrieval}
+
+      @provider Ai.Nx.new(%{embeddings_serving: Rag.EmbeddingServing, text_serving: Rag.LLMServing})
 
       def ingest(path) do
         path
@@ -225,7 +229,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
         chunks =
           ingestions
           |> Enum.flat_map(&chunk_text(&1, :document))
-          |> Embedding.Nx.generate_embeddings_batch(Rag.EmbeddingServing, text_key: :chunk, embedding_key: :embedding)
+          |> Embedding.generate_embeddings_batch(@provider, text_key: :chunk, embedding_key: :embedding)
 
         insert_all_with_chroma(collection, chunks)
       end
@@ -259,7 +263,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
 
         generation =
           Generation.new(query)
-          |> Embedding.Nx.generate_embedding(Rag.EmbeddingServing)
+          |> Embedding.generate_embedding(@provider)
           |> Retrieval.retrieve(:chroma, fn generation -> query_with_chroma(collection, generation) end)
 
         context =
@@ -276,7 +280,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
         |> Generation.put_context(context)
         |> Generation.put_context_sources(context_sources)
         |> Generation.put_prompt(prompt)
-        |> Generation.Nx.generate_response(Rag.LLMServing)
+        |> Generation.generate_response(@provider)
       end
 
       defp query_with_chroma(collection, generation, limit \\\\ 3) do
@@ -290,7 +294,7 @@ defmodule Mix.Tasks.Rag.GenRagModule do
 
         {documents, sources} = {hd(results["documents"]), hd(results["ids"])}
 
-        Enum.zip_with(documents, sources, fn document, source -> %{document: document, source: source} end)
+        {:ok, Enum.zip_with(documents, sources, fn document, source -> %{document: document, source: source} end)}
       end
 
 

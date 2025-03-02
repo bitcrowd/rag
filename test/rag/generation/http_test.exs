@@ -3,10 +3,14 @@ defmodule Rag.Generation.HttpTest do
   use Mimic
 
   alias Rag.Generation
-  alias Rag.Ai.Http.GenerationParams
+  alias Rag.Ai
+
+  setup do
+    %{provider: Ai.OpenAI.new(%{})}
+  end
 
   describe "generate_response/2" do
-    test "calls an HTTP API with a prompt to generate a response" do
+    test "calls an HTTP API with a prompt to generate a response", %{provider: provider} do
       expect(Req, :post, fn _url, _params ->
         {:ok,
          %Req.Response{
@@ -15,28 +19,27 @@ defmodule Rag.Generation.HttpTest do
          }}
       end)
 
-      params = GenerationParams.openai_params("openai_model", "somekey")
       generation = %Generation{query: "query", prompt: "a prompt"}
 
-      assert %{response: "a response"} = Generation.Http.generate_response(generation, params)
+      assert %{response: "a response"} = Generation.generate_response(generation, provider)
     end
 
     @tag :integration_test
     test "openai generation" do
       api_key = System.get_env("OPENAI_API_KEY")
-      params = GenerationParams.openai_params("gpt-4o-mini", api_key)
+      provider = Ai.OpenAI.new(%{text_model: "gpt-4o-mini", api_key: api_key})
 
       %Generation{query: "test?", response: _response} =
-        Generation.Http.generate_response(%Generation{query: "test?", prompt: "prompt"}, params)
+        Generation.generate_response(%Generation{query: "test?", prompt: "prompt"}, provider)
     end
 
     @tag :integration_test
     test "cohere generation" do
       api_key = System.get_env("COHERE_API_KEY")
-      params = GenerationParams.cohere_params("command-r-plus-08-2024", api_key)
+      provider = Ai.Cohere.new(%{text_model: "command-r-plus-08-2024", api_key: api_key})
 
       %Generation{query: "test?", response: _response} =
-        Generation.Http.generate_response(%Generation{query: "test?", prompt: "prompt"}, params)
+        Generation.generate_response(%Generation{query: "test?", prompt: "prompt"}, provider)
     end
   end
 end

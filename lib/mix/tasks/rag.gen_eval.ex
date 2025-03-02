@@ -71,16 +71,13 @@ defmodule Mix.Tasks.Rag.GenEval do
         #{inspect(rag_module)}.query(question)
       end
 
-      openai_params = Rag.Ai.Http.GenerationParams.openai_params(
-        model: "gpt-4o-mini",
-        api_key: openai_key
-      )
+      provider = Rag.Ai.OpenAI.new(%{text_model: "gpt-4o-mini", api_key: openai_key})
 
       IO.puts("evaluating")
 
       generations =
         for generation <- generations do
-          Rag.Evaluation.Http.evaluate_rag_triad(generation, openai_params)
+          Rag.Evaluation.evaluate_rag_triad(generation, provider)
         end
 
       json = generations
@@ -101,7 +98,7 @@ defmodule Mix.Tasks.Rag.GenEval do
 
       total_average_score = Enum.sum(average_rag_triad_scores) / Enum.count(average_rag_triad_scores)
 
-      IO.puts("Score: \#{total_average_score}")
+      IO.puts("Score: ,\#{total_average_score}")
       """
     )
   end

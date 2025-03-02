@@ -4,9 +4,15 @@ defmodule Rag.Evaluation.NxTest do
 
   alias Rag.Generation
   alias Rag.Evaluation
+  alias Rag.Ai
+
+  setup do
+    %{provider: Ai.Nx.new(%{})}
+  end
 
   describe "evaluate_rag_triad/2" do
-    test "takes a query, context, and response and returns an evaluation with scores and reasoning" do
+    test "takes a query, context, and response and returns an evaluation with scores and reasoning",
+         %{provider: provider} do
       expect(Nx.Serving, :batched_run, fn _serving, _prompt ->
         %{
           results: [
@@ -32,8 +38,6 @@ defmodule Rag.Evaluation.NxTest do
         response: "It's a test"
       }
 
-      serving = TestServing
-
       assert %Generation{
                evaluations: %{
                  rag_triad: %{
@@ -45,12 +49,14 @@ defmodule Rag.Evaluation.NxTest do
                    "groundedness_score" => 4
                  }
                }
-             } = Evaluation.Nx.evaluate_rag_triad(generation, serving)
+             } = Evaluation.evaluate_rag_triad(generation, provider)
     end
   end
 
   describe "detect_hallucination/2" do
-    test "sets evaluation `:hallucination` to true if response does not equal \"YES\"" do
+    test "sets evaluation `:hallucination` to true if response does not equal \"YES\"", %{
+      provider: provider
+    } do
       expect(Nx.Serving, :batched_run, fn _serving, _prompt ->
         %{
           results: [
@@ -66,12 +72,10 @@ defmodule Rag.Evaluation.NxTest do
           response: "this is something completely unrelated"
         }
 
-      serving = TestServing
-
       assert %Generation{evaluations: %{hallucination: true}} =
-               Evaluation.Nx.detect_hallucination(
+               Evaluation.detect_hallucination(
                  generation,
-                 serving
+                 provider
                )
     end
   end

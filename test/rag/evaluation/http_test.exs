@@ -4,10 +4,15 @@ defmodule Rag.Evaluation.HttpTest do
 
   alias Rag.Generation
   alias Rag.Evaluation
-  alias Rag.Ai.Http.GenerationParams
+  alias Rag.Ai
+
+  setup do
+    %{provider: Ai.OpenAI.new(%{})}
+  end
 
   describe "evaluate_rag_triad/2" do
-    test "takes a query, context, and response and returns an evaluation with scores and reasoning" do
+    test "takes a query, context, and response and returns an evaluation with scores and reasoning",
+         %{provider: provider} do
       expect(Req, :post, fn _url, _params ->
         {:ok,
          %Req.Response{
@@ -39,8 +44,6 @@ defmodule Rag.Evaluation.HttpTest do
         response: "It's a test"
       }
 
-      openai_params = GenerationParams.openai_params("gpt-4o-mini", "my_key")
-
       assert %Generation{
                evaluations: %{
                  rag_triad: %{
@@ -53,15 +56,17 @@ defmodule Rag.Evaluation.HttpTest do
                  }
                }
              } =
-               Evaluation.Http.evaluate_rag_triad(
+               Evaluation.evaluate_rag_triad(
                  generation,
-                 openai_params
+                 provider
                )
     end
   end
 
   describe "detect_hallucination/2" do
-    test "sets evaluation `:hallucination` to true if response does not equal \"YES\"" do
+    test "sets evaluation `:hallucination` to true if response does not equal \"YES\"", %{
+      provider: provider
+    } do
       expect(Req, :post, fn _url, _params ->
         {:ok,
          %Req.Response{
@@ -73,23 +78,22 @@ defmodule Rag.Evaluation.HttpTest do
       query = "an important query"
       context = "some context"
       response = "this is something completely unrelated"
-      params = GenerationParams.openai_params("openai_model", "somekey")
 
       assert %Generation{evaluations: %{hallucination: true}} =
-               Evaluation.Http.detect_hallucination(
+               Evaluation.detect_hallucination(
                  %Generation{
                    query: query,
                    context: context,
                    response: response
                  },
-                 params
+                 provider
                )
     end
 
     @tag :integration_test
     test "openai evaluation" do
       api_key = System.get_env("OPENAI_API_KEY")
-      params = GenerationParams.openai_params("gpt-4o-mini", api_key)
+      provider = Ai.OpenAI.new(%{text_model: "gpt-4o-mini", api_key: api_key})
 
       query = "When was Elixir 1.18.1 released?"
       context = "Elixir 1.18.1 was released on 2024-12-24"
@@ -98,13 +102,13 @@ defmodule Rag.Evaluation.HttpTest do
       generation = %Generation{query: query, context: context, response: response}
 
       %Generation{evaluations: %{hallucination: true}} =
-        Evaluation.Http.detect_hallucination(generation, params)
+        Evaluation.detect_hallucination(generation, provider)
     end
 
     @tag :integration_test
     test "cohere evaluation" do
       api_key = System.get_env("COHERE_API_KEY")
-      params = GenerationParams.cohere_params("command-r-plus-08-2024", api_key)
+      provider = Ai.Cohere.new(%{text_model: "command-r-plus-08-2024", api_key: api_key})
 
       query = "When was Elixir 1.18.1 released?"
       context = "Elixir 1.18.1 was released on 2024-12-24"
@@ -113,7 +117,7 @@ defmodule Rag.Evaluation.HttpTest do
       generation = %Generation{query: query, context: context, response: response}
 
       %Generation{evaluations: %{hallucination: true}} =
-        Evaluation.Http.detect_hallucination(generation, params)
+        Evaluation.detect_hallucination(generation, provider)
     end
   end
 end

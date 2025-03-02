@@ -1,31 +1,26 @@
 defmodule Rag.Ai.Nx do
   @moduledoc """
-  Implementation of `Rag.Ai` using `Nx`.
+  Implementation of `Rag.Ai.Provider` using `Nx`.
   """
 
-  @behaviour Rag.Ai
+  @behaviour Rag.Ai.Provider
 
-  @type embedding :: list(number())
+  @type t :: %__MODULE__{
+          embeddings_serving: Nx.Serving.t(),
+          text_serving: Nx.Serving.t()
+        }
+  defstruct [:embeddings_serving, :text_serving]
 
-  @impl Rag.Ai
-  @spec generate_embedding(String.t(), Nx.Serving.t()) :: {:ok, embedding()} | {:error, any()}
-  def generate_embedding(text, serving) do
-    try do
-      %{embedding: embedding} = Nx.Serving.batched_run(serving, text)
-      {:ok, Nx.to_list(embedding)}
-    rescue
-      error ->
-        {:error, error}
-    end
+  @impl Rag.Ai.Provider
+  def new(attrs) do
+    struct!(__MODULE__, attrs)
   end
 
-  @impl Rag.Ai
-  @spec generate_embeddings_batch(list(String.t()), Nx.Serving.t()) ::
-          {:ok, list(embedding())} | {:error, any()}
-  def generate_embeddings_batch(texts, serving) when is_list(texts) do
+  @impl Rag.Ai.Provider
+  def generate_embeddings(%__MODULE__{} = provider, texts, _opts \\ []) when is_list(texts) do
     try do
       embeddings =
-        Nx.Serving.batched_run(serving, texts)
+        Nx.Serving.batched_run(provider.embeddings_serving, texts)
         |> Enum.map(&Nx.to_list(&1.embedding))
 
       {:ok, embeddings}
@@ -35,12 +30,11 @@ defmodule Rag.Ai.Nx do
     end
   end
 
-  @impl Rag.Ai
-  @spec generate_response(String.t(), Nx.Serving.t()) :: {:ok, String.t()} | {:error, any()}
-  def generate_response(prompt, serving) when is_binary(prompt) do
+  @impl Rag.Ai.Provider
+  def generate_text(%__MODULE__{} = provider, prompt, _opts \\ []) when is_binary(prompt) do
     try do
       %{results: [result]} =
-        Nx.Serving.batched_run(serving, prompt)
+        Nx.Serving.batched_run(provider.text_serving, prompt)
 
       {:ok, result.text}
     rescue
