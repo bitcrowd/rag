@@ -157,11 +157,9 @@ defmodule Mix.Tasks.Rag.GenRagModule do
       end
 
       defp query_fulltext(%{query: query}, limit \\\\ 3) do
-        query = query |> String.trim() |> String.replace(" ", " & ")
-
         {:ok, Repo.all(
           from(c in #{inspect(schema_module)},
-            where: fragment("to_tsvector(?) @@ to_tsquery(?)", c.document, ^query),
+            where: fragment("to_tsvector(?) @@ websearch_to_tsquery(?)", c.chunk, ^query),
             limit: ^limit
           )
         )}
