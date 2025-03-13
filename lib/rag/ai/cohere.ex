@@ -6,11 +6,11 @@ defmodule Rag.Ai.Cohere do
   @behaviour Rag.Ai.Provider
 
   @type t :: %__MODULE__{
-          embeddings_url: String.t(),
-          embeddings_model: String.t(),
-          text_url: String.t(),
-          text_model: String.t(),
-          api_key: String.t()
+          embeddings_url: String.t() | nil,
+          embeddings_model: String.t() | nil,
+          text_url: String.t() | nil,
+          text_model: String.t() | nil,
+          api_key: String.t() | nil
         }
   defstruct embeddings_url: "https://api.cohere.com/v2/embed",
             embeddings_model: nil,

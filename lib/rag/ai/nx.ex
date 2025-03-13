@@ -6,8 +6,8 @@ defmodule Rag.Ai.Nx do
   @behaviour Rag.Ai.Provider
 
   @type t :: %__MODULE__{
-          embeddings_serving: Nx.Serving.t(),
-          text_serving: Nx.Serving.t()
+          embeddings_serving: Nx.Serving.t() | nil,
+          text_serving: Nx.Serving.t() | nil
         }
   defstruct [:embeddings_serving, :text_serving]
 
