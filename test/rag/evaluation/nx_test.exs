@@ -7,7 +7,7 @@ defmodule Rag.Evaluation.NxTest do
   alias Rag.Ai
 
   setup do
-    %{provider: Ai.Nx.new(%{})}
+    %{provider: Ai.Nx.new(%{text_serving: TestTextServing})}
   end
 
   describe "evaluate_rag_triad/2" do

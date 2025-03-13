@@ -6,7 +6,7 @@ defmodule Rag.Embedding.NxTest do
   alias Rag.Generation
 
   setup do
-    %{provider: Rag.Ai.Nx.new(%{})}
+    %{provider: Rag.Ai.Nx.new(%{embeddings_serving: TestEmbeddingsServing})}
   end
 
   describe "generate_embedding/3" do
