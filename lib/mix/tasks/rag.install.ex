@@ -118,6 +118,10 @@ defmodule Mix.Tasks.Rag.Install do
     |> Igniter.Project.Module.create_module(
       schema_module,
       """
+      @moduledoc \"""
+      The chunk schema.
+      \"""
+
       use Ecto.Schema
 
       schema "chunks" do
