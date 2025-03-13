@@ -36,8 +36,7 @@ defmodule Rag.Ai.Cohere do
         }
       ]
 
-    with {:ok, %Req.Response{status: 200} = response} <-
-           Req.post(provider.embeddings_url, req_params) |> dbg,
+    with {:ok, %Req.Response{status: 200} = response} <- Req.post(provider.embeddings_url, req_params),
          {:access, embeddings} <- {:access, get_embeddings(response)} do
       {:ok, embeddings}
     else
