@@ -64,6 +64,12 @@ defmodule Mix.Tasks.Rag.GenRagModule do
       igniter,
       rag_module,
       """
+      @moduledoc \"""
+      Contains ingestion and generation functions.
+      The main entry point into the ingestion pipeline is `ingest/1`.
+      The main entry point into the generation pipleine is `query/1`.
+      \"""
+
       alias #{inspect(repo_module)}
       alias Rag.{Ai, Embedding, Generation, Retrieval}
 
