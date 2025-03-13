@@ -14,12 +14,12 @@ defmodule Rag.Generation do
   @type t :: %__MODULE__{
           query: String.t() | nil,
           query_embedding: embedding() | nil,
-          retrieval_results: %{atom() => any()},
+          retrieval_results: %{optional(atom()) => any()},
           context: String.t() | nil,
           context_sources: list(String.t()),
           prompt: String.t() | nil,
           response: String.t() | nil,
-          evaluations: %{atom() => any()},
+          evaluations: %{optional(atom()) => any()},
           halted?: boolean(),
           errors: list(any())
         }
