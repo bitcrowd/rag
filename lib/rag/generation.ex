@@ -4,6 +4,7 @@ defmodule Rag.Generation do
   """
   alias Rag.Generation
 
+  @type embedding :: list(number())
   @type response_function :: (String.t(), keyword() -> String.t())
   @type provider :: struct()
 
@@ -11,14 +12,14 @@ defmodule Rag.Generation do
   Represents a generation, the main datastructure in `rag`.
   """
   @type t :: %__MODULE__{
-          query: String.t(),
-          query_embedding: list(number()),
-          retrieval_results: %{atom() => any},
-          context: String.t(),
+          query: String.t() | nil,
+          query_embedding: embedding() | nil,
+          retrieval_results: %{atom() => any()},
+          context: String.t() | nil,
           context_sources: list(String.t()),
-          prompt: String.t(),
-          response: String.t(),
-          evaluations: %{atom() => any},
+          prompt: String.t() | nil,
+          response: String.t() | nil,
+          evaluations: %{atom() => any()},
           halted?: boolean(),
           errors: list(any())
         }
