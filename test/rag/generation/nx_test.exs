@@ -6,7 +6,7 @@ defmodule Rag.Generation.NxTest do
   alias Rag.Ai
 
   setup do
-    %{provider: Ai.Nx.new(%{})}
+    %{provider: Ai.Nx.new(%{text_serving: TestTextServing})}
   end
 
   describe "generate_response/2" do
