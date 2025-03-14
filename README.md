@@ -17,6 +17,8 @@ RAG addresses these issues by retrieving relevant information from an external k
 This retrieval-augmented approach ensures that the generated content is informed by the most current data, reducing the likelihood of hallucinations and improving the overall quality of the responses.
 By integrating retrieval with generation, RAG enables more reliable and contextually relevant interactions, making it a valuable tool for applications that require accurate and informative language generation.
 
+Check out [Getting Started](/notebooks/getting_started.livemd).
+
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
