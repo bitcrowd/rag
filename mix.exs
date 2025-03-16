@@ -54,7 +54,9 @@ defmodule Rag.MixProject do
       source_ref: "v#{@version}",
       source_url: @source_url,
       extras: [
-        {"README.md", title: "README"}
+        {"README.md", title: "README"},
+        "CHANGELOG.md",
+        "notebooks/getting_started.livemd"
       ]
     ]
   end
