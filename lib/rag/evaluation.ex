@@ -16,15 +16,20 @@ defmodule Rag.Evaluation do
 
   Prompts from https://github.com/truera/trulens/blob/main/src/feedback/trulens/feedback/prompts.py
   """
-  @spec evaluate_rag_triad(Generation.t(), response_function() | provider()) :: Generation.t()
+  @spec evaluate_rag_triad(Generation.t(), response_function() | provider(), keyword()) ::
+          Generation.t()
   def evaluate_rag_triad(%Generation{halted?: true} = generation, _response_function),
     do: generation
 
-  def evaluate_rag_triad(%Generation{} = generation, %provider_module{} = provider) do
+  def evaluate_rag_triad(%Generation{} = generation, %provider_module{} = provider, _opts) do
     evaluate_rag_triad(generation, &provider_module.generate_text(provider, &1, &2))
   end
 
-  def evaluate_rag_triad(%Generation{} = generation, response_function)
+  def evaluate_rag_triad(%Generation{} = generation, response_function, stream: true) do
+    {:error, "Streaming"}
+  end
+
+  def evaluate_rag_triad(%Generation{} = generation, response_function, opts \\ [])
       when is_function(response_function, 2) do
     %{response: response, query: query, context: context} = generation
 

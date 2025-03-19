@@ -13,7 +13,7 @@ defmodule Rag.GenerationTest do
     end
 
     test "returns unchanged generation when halted? is true" do
-      generation = %Generation{query: "query", prompt: "a prompt", halted?: true, stream?: false}
+      generation = %Generation{query: "query", prompt: "a prompt", halted?: true}
       response_fn = fn "a prompt", _opts -> {:ok, "a response"} end
 
       assert generation == Generation.generate_response(generation, response_fn, false)
@@ -52,12 +52,22 @@ defmodule Rag.GenerationTest do
                Generation.generate_response(generation, error_fn)
     end
 
-    @tag :skip
     test "returns a stream response" do
-      generation = %Generation{query: "", prompt: ""}
-      stream_response = Stream.repeatedly(fn -> "This is a streamed response" end )
+      generation = %Generation{query: "query", prompt: "get a streaming response"}
 
-      assert true == false
+      stream_response_fn = fn "get a streaming response", _opts ->
+        result = Stream.repeatedly(fn -> "This is a streamed response" end)
+        {:ok, result}
+      end
+
+      %{response: response} =
+        Generation.generate_response(generation, stream_response_fn, stream: true)
+
+      assert Enum.take(response, 3) == [
+               "This is a streamed response",
+               "This is a streamed response",
+               "This is a streamed response"
+             ]
     end
   end
 end
