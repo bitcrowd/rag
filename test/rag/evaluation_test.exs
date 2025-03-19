@@ -52,6 +52,19 @@ defmodule Rag.EvaluationTest do
       assert generation == Evaluation.evaluate_rag_triad(generation, response_fn)
     end
 
+    @tag :skip
+    test "raise error when receiving a streaming response" do ## Raise if Stream is true for noe.
+      generation = %Generation{
+        query: "This is a streming query",
+        response: Stream.repeatedly(fn -> "A streaming response" end |> Enum.take(5)),
+        stream?: true
+      }
+
+      response_fn = fn _prompt, _opts -> raise "Streaming" end
+
+      assert generation == Evaluation.evaluate_rag_triad(generation, response_fn)
+    end
+
     test "emits start, stop, and exception telemetry events" do
       generation = %Generation{
         query: "What's with this?",

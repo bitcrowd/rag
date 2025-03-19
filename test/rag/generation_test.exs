@@ -13,10 +13,10 @@ defmodule Rag.GenerationTest do
     end
 
     test "returns unchanged generation when halted? is true" do
-      generation = %Generation{query: "query", prompt: "a prompt", halted?: true}
+      generation = %Generation{query: "query", prompt: "a prompt", halted?: true, stream?: false}
       response_fn = fn "a prompt", _opts -> {:ok, "a response"} end
 
-      assert generation == Generation.generate_response(generation, response_fn)
+      assert generation == Generation.generate_response(generation, response_fn, false)
     end
 
     test "emits start, stop, and exception telemetry events" do
@@ -50,6 +50,14 @@ defmodule Rag.GenerationTest do
 
       assert %{halted?: true, errors: ["some weird error"]} =
                Generation.generate_response(generation, error_fn)
+    end
+
+    @tag :skip
+    test "returns a stream response" do
+      generation = %Generation{query: "", prompt: ""}
+      stream_response = Stream.repeatedly(fn -> "This is a streamed response" end )
+
+      assert true == false
     end
   end
 end
