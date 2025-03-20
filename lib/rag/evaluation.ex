@@ -26,7 +26,7 @@ defmodule Rag.Evaluation do
   end
 
   def evaluate_rag_triad(%Generation{} = generation, response_function, stream: true) do
-    {:error, "Streaming"}
+    raise "Streaming"
   end
 
   def evaluate_rag_triad(%Generation{} = generation, response_function, opts \\ [])

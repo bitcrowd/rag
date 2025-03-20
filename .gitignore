@@ -26,4 +26,4 @@ rag-*.tar
 /tmp/
 
 # Tool-versions if you are using asdf as a version manager.
-.tool-versions
+/.tool-versions

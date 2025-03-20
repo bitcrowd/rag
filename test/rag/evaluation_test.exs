@@ -64,8 +64,9 @@ defmodule Rag.EvaluationTest do
 
       response_fn = fn _prompt, _opts -> "A response" end
 
-      assert {:error, "Streaming"} ==
-               Evaluation.evaluate_rag_triad(generation, response_fn, stream: true)
+      assert_raise(RuntimeError, fn ->
+        Evaluation.evaluate_rag_triad(generation, response_fn, stream: true)
+      end)
     end
 
     test "emits start, stop, and exception telemetry events" do
