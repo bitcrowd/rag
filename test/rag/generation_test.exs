@@ -16,7 +16,7 @@ defmodule Rag.GenerationTest do
       generation = %Generation{query: "query", prompt: "a prompt", halted?: true}
       response_fn = fn "a prompt", _opts -> {:ok, "a response"} end
 
-      assert generation == Generation.generate_response(generation, response_fn)
+      assert generation == Generation.generate_response(generation, response_fn, false)
     end
 
     test "emits start, stop, and exception telemetry events" do
@@ -50,6 +50,24 @@ defmodule Rag.GenerationTest do
 
       assert %{halted?: true, errors: ["some weird error"]} =
                Generation.generate_response(generation, error_fn)
+    end
+
+    test "returns a stream response" do
+      generation = %Generation{query: "query", prompt: "get a streaming response"}
+
+      stream_response_fn = fn "get a streaming response", _opts ->
+        result = Stream.repeatedly(fn -> "This is a streamed response" end)
+        {:ok, result}
+      end
+
+      %{response: response} =
+        Generation.generate_response(generation, stream_response_fn, stream: true)
+
+      assert Enum.take(response, 3) == [
+               "This is a streamed response",
+               "This is a streamed response",
+               "This is a streamed response"
+             ]
     end
   end
 end

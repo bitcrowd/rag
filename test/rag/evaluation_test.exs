@@ -52,6 +52,23 @@ defmodule Rag.EvaluationTest do
       assert generation == Evaluation.evaluate_rag_triad(generation, response_fn)
     end
 
+    test "raise error when receiving a streaming response" do
+      generation = %Generation{
+        query: "This is a streaming query",
+        response: [
+          "This is a streamed response",
+          "This is a streamed response",
+          "This is a streamed response"
+        ]
+      }
+
+      response_fn = fn _prompt, _opts -> "A response" end
+
+      assert_raise(RuntimeError, fn ->
+        Evaluation.evaluate_rag_triad(generation, response_fn, stream: true)
+      end)
+    end
+
     test "emits start, stop, and exception telemetry events" do
       generation = %Generation{
         query: "What's with this?",
