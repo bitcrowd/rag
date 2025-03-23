@@ -11,6 +11,8 @@ defmodule Rag.MixProject do
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      aliases: aliases(),
+      preferred_cli_env: [lint: :test],
       package: package(),
       docs: docs(),
       description: "A library to make building performant RAG systems in Elixir easy",
@@ -57,6 +59,14 @@ defmodule Rag.MixProject do
         {"README.md", title: "README"},
         "CHANGELOG.md",
         "notebooks/getting_started.livemd"
+      ]
+    ]
+  end
+
+  defp aliases do
+    [
+      lint: [
+        "format --check-formatted"
       ]
     ]
   end
