@@ -14,10 +14,7 @@ jobs:
     name: test
     strategy:
       matrix:
-        # Earliest combination possible:
-        # - ubuntu-latest (Ubuntu 24) mandates OTP >= 24
-        # - dialyxir uses `Kernel.then` and hence mandates Elixir >= 1.12
-        lang: [{otp: '24.3.4.13', elixir: '1.12.3'}, {otp: '27.2.3', elixir: '1.15.5'}, {otp: '27.2.3', elixir: '1.18.3'}]
+        lang: [{otp: '24.3.4', elixir: '1.15.8'}, {otp: '27.2.3', elixir: '1.18.3'}]
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-beam@v1

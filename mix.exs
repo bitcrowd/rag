@@ -8,7 +8,7 @@ defmodule Rag.MixProject do
     [
       app: :rag,
       version: @version,
-      elixir: "~> 1.17",
+      elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
