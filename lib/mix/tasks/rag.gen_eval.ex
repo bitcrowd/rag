@@ -1,5 +1,6 @@
 defmodule Mix.Tasks.Rag.GenEval do
   use Igniter.Mix.Task
+  alias Igniter.Project
 
   @example "mix rag.gen_eval"
 
@@ -40,7 +41,7 @@ defmodule Mix.Tasks.Rag.GenEval do
     rag_module = Module.concat(root_module, "Rag")
 
     igniter
-    |> Igniter.Project.Config.configure(
+    |> Project.Config.configure(
       "config.exs",
       app_name,
       [:openai_key],

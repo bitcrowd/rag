@@ -1,7 +1,8 @@
-name: QA
+name: CI
 
 on:
   pull_request:
+  push:
     branches:
       - main
 
@@ -79,4 +80,5 @@ jobs:
             v2-${{ runner.os }}-plts
       - run: mix deps.get
       - run: mix compile --warnings-as-errors
+      - run: mix deps.unlock --check-unused
       - run: mix lint

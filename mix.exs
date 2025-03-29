@@ -66,7 +66,8 @@ defmodule Rag.MixProject do
   defp aliases do
     [
       lint: [
-        "format --check-formatted"
+        "format --check-formatted",
+        "credo --strict"
       ]
     ]
   end
