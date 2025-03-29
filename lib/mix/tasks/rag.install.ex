@@ -1,5 +1,6 @@
 defmodule Mix.Tasks.Rag.Install do
   use Igniter.Mix.Task
+  alias Igniter.{Libs, Project}
 
   @example "mix rag.install --vector-store pgvector"
 
@@ -57,10 +58,10 @@ defmodule Mix.Tasks.Rag.Install do
 
     igniter =
       igniter
-      |> Igniter.Project.Deps.add_dep({:text_chunker, "~> 0.3.1"})
-      |> Igniter.Project.Deps.add_dep({:bumblebee, "~> 0.6.0"})
-      |> Igniter.Project.Deps.add_dep({:exla, "~> 0.9.1"})
-      |> Igniter.Project.Config.configure("config.exs", :nx, [:default_backend], EXLA.Backend)
+      |> Project.Deps.add_dep({:text_chunker, "~> 0.3.1"})
+      |> Project.Deps.add_dep({:bumblebee, "~> 0.6.0"})
+      |> Project.Deps.add_dep({:exla, "~> 0.9.1"})
+      |> Project.Config.configure("config.exs", :nx, [:default_backend], EXLA.Backend)
       |> Igniter.compose_task("rag.gen_eval")
       |> Igniter.compose_task("rag.gen_servings")
       |> Igniter.compose_task("rag.gen_rag_module")
@@ -79,15 +80,15 @@ defmodule Mix.Tasks.Rag.Install do
 
   defp with_chroma(igniter) do
     igniter
-    |> Igniter.Project.Deps.add_dep({:chroma, "~> 0.1.3"})
+    |> Project.Deps.add_dep({:chroma, "~> 0.1.3"})
     |> Igniter.apply_and_fetch_dependencies()
-    |> Igniter.Project.Config.configure("config.exs", :chroma, [:host], "http://localhost:8000")
-    |> Igniter.Project.Config.configure("config.exs", :chroma, [:api_base], "api")
-    |> Igniter.Project.Config.configure("config.exs", :chroma, [:api_version], "v1")
+    |> Project.Config.configure("config.exs", :chroma, [:host], "http://localhost:8000")
+    |> Project.Config.configure("config.exs", :chroma, [:api_base], "api")
+    |> Project.Config.configure("config.exs", :chroma, [:api_version], "v1")
   end
 
   defp with_pgvector(igniter) do
-    app_name = Igniter.Project.Application.app_name(igniter)
+    app_name = Project.Application.app_name(igniter)
 
     root_module =
       app_name
@@ -99,9 +100,9 @@ defmodule Mix.Tasks.Rag.Install do
     schema_module = Module.concat(root_module, "Rag.Chunk")
 
     igniter
-    |> Igniter.Project.Deps.add_dep({:ecto, "~> 3.0"})
-    |> Igniter.Project.Deps.add_dep({:ecto_sql, "~> 3.10"})
-    |> Igniter.Project.Deps.add_dep({:pgvector, "~> 0.3.0"})
+    |> Project.Deps.add_dep({:ecto, "~> 3.0"})
+    |> Project.Deps.add_dep({:ecto_sql, "~> 3.10"})
+    |> Project.Deps.add_dep({:pgvector, "~> 0.3.0"})
     |> Igniter.apply_and_fetch_dependencies()
     |> Igniter.include_or_create_file(
       "lib/postgrex_types.ex",
@@ -109,13 +110,13 @@ defmodule Mix.Tasks.Rag.Install do
       Postgrex.Types.define(#{inspect(postgrex_types_module)}, [Pgvector.Extensions.Vector] ++ Ecto.Adapters.Postgres.extensions(), [])
       """
     )
-    |> Igniter.Project.Config.configure(
+    |> Project.Config.configure(
       "config.exs",
       app_name,
       [repo_module, :types],
       postgrex_types_module
     )
-    |> Igniter.Project.Module.create_module(
+    |> Project.Module.create_module(
       schema_module,
       """
       @moduledoc \"""
@@ -138,7 +139,7 @@ defmodule Mix.Tasks.Rag.Install do
       end
       """
     )
-    |> Igniter.Libs.Ecto.gen_migration(repo_module, "create_chunks_table",
+    |> Libs.Ecto.gen_migration(repo_module, "create_chunks_table",
       body: """
       def up() do
         execute("CREATE EXTENSION IF NOT EXISTS vector")

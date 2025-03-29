@@ -25,16 +25,14 @@ defmodule Rag.Ai.Nx do
   end
 
   def generate_embeddings(%__MODULE__{} = provider, texts, _opts) when is_list(texts) do
-    try do
-      embeddings =
-        Nx.Serving.batched_run(provider.embeddings_serving, texts)
-        |> Enum.map(&Nx.to_list(&1.embedding))
+    embeddings =
+      Nx.Serving.batched_run(provider.embeddings_serving, texts)
+      |> Enum.map(&Nx.to_list(&1.embedding))
 
-      {:ok, embeddings}
-    rescue
-      error ->
-        {:error, error}
-    end
+    {:ok, embeddings}
+  rescue
+    error ->
+      {:error, error}
   end
 
   @impl Rag.Ai.Provider
@@ -46,14 +44,12 @@ defmodule Rag.Ai.Nx do
   end
 
   def generate_text(%__MODULE__{} = provider, prompt, _opts) when is_binary(prompt) do
-    try do
-      %{results: [result]} =
-        Nx.Serving.batched_run(provider.text_serving, prompt)
+    %{results: [result]} =
+      Nx.Serving.batched_run(provider.text_serving, prompt)
 
-      {:ok, result.text}
-    rescue
-      error ->
-        {:error, error}
-    end
+    {:ok, result.text}
+  rescue
+    error ->
+      {:error, error}
   end
 end

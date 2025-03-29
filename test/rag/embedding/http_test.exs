@@ -2,9 +2,7 @@ defmodule Rag.Embedding.HttpTest do
   use ExUnit.Case
   use Mimic
 
-  alias Rag.Embedding
-  alias Rag.Generation
-  alias Rag.Ai
+  alias Rag.{Ai, Embedding, Generation}
 
   setup do
     %{provider: Ai.OpenAI.new(%{})}

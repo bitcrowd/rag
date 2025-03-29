@@ -2,11 +2,10 @@ defmodule Rag.Embedding.NxTest do
   use ExUnit.Case
   use Mimic
 
-  alias Rag.Embedding
-  alias Rag.Generation
+  alias Rag.{Ai, Embedding, Generation}
 
   setup do
-    %{provider: Rag.Ai.Nx.new(%{embeddings_serving: TestEmbeddingsServing})}
+    %{provider: Ai.Nx.new(%{embeddings_serving: TestEmbeddingsServing})}
   end
 
   describe "generate_embedding/3" do
