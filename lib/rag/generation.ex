@@ -41,6 +41,7 @@ defmodule Rag.Generation do
   @doc """
   Creates a new generation struct from a query.
   """
+  @spec new(String.t()) :: t()
   @spec new(String.t(), opts :: keyword()) :: t()
   def new(query, opts \\ []) when is_binary(query) do
     ref = Keyword.get(opts, :ref)

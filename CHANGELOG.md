@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v0.2.2
+* Add `ref` to `Generation` for referencing in telemetry handler
+
 ## v0.2.1
 
 * fix credo issues in generator
