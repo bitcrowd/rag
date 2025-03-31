@@ -27,7 +27,7 @@ by adding `rag` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:rag, "~> 0.2.1"}
+    {:rag, "~> 0.2.2"}
   ]
 end
 ```
