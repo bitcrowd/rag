@@ -21,7 +21,8 @@ defmodule Rag.Generation do
           response: String.t() | nil,
           evaluations: %{optional(atom()) => any()},
           halted?: boolean(),
-          errors: list(any())
+          errors: list(any()),
+          ref: any()
         }
 
   @enforce_keys [:query]
@@ -34,13 +35,17 @@ defmodule Rag.Generation do
             response: nil,
             evaluations: %{},
             halted?: false,
-            errors: []
+            errors: [],
+            ref: nil
 
   @doc """
   Creates a new generation struct from a query.
   """
-  @spec new(String.t()) :: t()
-  def new(query) when is_binary(query), do: %Generation{query: query}
+  @spec new(String.t(), opts :: keyword()) :: t()
+  def new(query, opts \\ []) when is_binary(query) do
+    ref = Keyword.get(opts, :ref)
+    %Generation{query: query, ref: ref}
+  end
 
   @doc """
   Puts `query_embedding` in `generation.query_embedding`.
