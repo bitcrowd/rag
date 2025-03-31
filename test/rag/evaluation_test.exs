@@ -52,7 +52,7 @@ defmodule Rag.EvaluationTest do
       assert generation == Evaluation.evaluate_rag_triad(generation, response_fn)
     end
 
-    test "raise error when receiving a streaming response" do
+    test "raise error when receiving a streaming response for evaluating rag triad" do
       generation = %Generation{
         query: "This is a streaming query",
         response: [
@@ -65,7 +65,7 @@ defmodule Rag.EvaluationTest do
       response_fn = fn _prompt, _opts -> "A response" end
 
       assert_raise(RuntimeError, fn ->
-        Evaluation.evaluate_rag_triad(generation, response_fn, stream: true)
+        Evaluation.evaluate_rag_triad(generation, response_fn)
       end)
     end
 
@@ -176,6 +176,20 @@ defmodule Rag.EvaluationTest do
       }
 
       assert generation == Evaluation.detect_hallucination(generation, response_fn)
+    end
+
+    test "raise error when receiving a streaming response for detecting hallucination" do
+      generation = %Generation{
+        query: "An important streaming query",
+        context: "Some streaming context",
+        response: "This is unrelated"
+      }
+
+      response_fn = fn _prompt, _opts -> raise "Streaming" end
+
+      assert_raise(RuntimeError, fn ->
+        Evaluation.detect_hallucination(generation, response_fn)
+      end)
     end
 
     test "emits start, stop, and exception telemetry events" do

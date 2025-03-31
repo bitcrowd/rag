@@ -24,6 +24,3 @@ rag-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
-
-# Tool-versions if you are using asdf as a version manager.
-/.tool-versions

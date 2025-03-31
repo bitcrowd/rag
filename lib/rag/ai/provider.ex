@@ -4,6 +4,7 @@ defmodule Rag.Ai.Provider do
   """
 
   @type embedding :: list(number())
+  @type response :: String.t() | Enumerable.t()
 
   @doc """
   Creates a new provider struct.
@@ -28,5 +29,5 @@ defmodule Rag.Ai.Provider do
               prompt :: String.t(),
               opts :: keyword()
             ) ::
-              {:ok, String.t()} | Enumerable.t() | {:error, any()}
+              {:ok, response()} | {:error, any()}
 end

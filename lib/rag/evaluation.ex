@@ -16,21 +16,17 @@ defmodule Rag.Evaluation do
 
   Prompts from https://github.com/truera/trulens/blob/main/src/feedback/trulens/feedback/prompts.py
   """
-  @spec evaluate_rag_triad(Generation.t(), response_function() | provider(), keyword()) ::
+  @spec evaluate_rag_triad(Generation.t(), response_function() | provider()) ::
           Generation.t()
   def evaluate_rag_triad(%Generation{halted?: true} = generation, _response_function),
     do: generation
 
-  def evaluate_rag_triad(%Generation{} = generation, %provider_module{} = provider, _opts) do
+  def evaluate_rag_triad(%Generation{} = generation, %provider_module{} = provider) do
     evaluate_rag_triad(generation, &provider_module.generate_text(provider, &1, &2))
   end
 
-  def evaluate_rag_triad(%Generation{} = generation, response_function, stream: true) do
-    raise "Streaming"
-  end
-
-  def evaluate_rag_triad(%Generation{} = generation, response_function, opts \\ [])
-      when is_function(response_function, 2) do
+  def evaluate_rag_triad(%Generation{response: response} = generation, response_function)
+      when is_binary(response) and is_function(response_function, 2) do
     %{response: response, query: query, context: context} = generation
 
     prompt = """
@@ -120,6 +116,10 @@ defmodule Rag.Evaluation do
     end)
   end
 
+  def evaluate_rag_triad(%Generation{} = generation, response_function) do
+    raise "Streaming"
+  end
+
   @doc """
   Takes the values of `query`, `response` and `context` from `generation`, conproviders a prompt and passes it to `response_function` or `provider` to detect potential hallucinations.
   Then, puts a new `hallucination` evaluation in `generation.evaluations`.
@@ -166,5 +166,9 @@ defmodule Rag.Evaluation do
 
       {generation, %{metadata | generation: generation}}
     end)
+  end
+
+  def detect_hallucination(%Generation{} = generation, response_function) do
+    raise "Streaming"
   end
 end

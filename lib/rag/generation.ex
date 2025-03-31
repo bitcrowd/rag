@@ -7,6 +7,7 @@ defmodule Rag.Generation do
   @type embedding :: list(number())
   @type response_function :: (String.t(), keyword() -> String.t())
   @type provider :: struct()
+  @type response :: String.t() | Enumerable.t()
 
   @typedoc """
   Represents a generation, the main datastructure in `rag`.
@@ -18,7 +19,7 @@ defmodule Rag.Generation do
           context: String.t() | nil,
           context_sources: list(String.t()),
           prompt: String.t() | nil,
-          response: String.t() | Enumerable.t() | nil,
+          response: response() | nil,
           evaluations: %{optional(atom()) => any()},
           halted?: boolean(),
           errors: list(any())
@@ -144,7 +145,7 @@ defmodule Rag.Generation do
 
     :telemetry.span([:rag, :generate_response], metadata, fn ->
       generation =
-        case response_function.(generation.prompt, []) do
+        case response_function.(generation.prompt, opts) do
           {:ok, response} -> Generation.put_response(generation, response)
           {:error, error} -> generation |> Generation.add_error(error) |> Generation.halt()
         end
