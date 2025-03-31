@@ -52,4 +52,8 @@ defmodule Rag.Ai.Nx do
     error ->
       {:error, error}
   end
+
+  def generate_text(provider, prompt, opts) do
+    raise "Streaming"
+  end
 end
