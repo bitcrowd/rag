@@ -52,7 +52,7 @@ defmodule Rag.Generation do
   @doc """
   Puts `retrieval_result` at `key` in `generation.retrieval_results`.
   """
-  @spec put_retrieval_result(t(), key :: atom(), retrieval_result :: map()) :: t()
+  @spec put_retrieval_result(t(), key :: atom(), retrieval_result :: any()) :: t()
   def put_retrieval_result(%Generation{} = generation, key, retrieval_result),
     do: put_in(generation, [Access.key!(:retrieval_results), key], retrieval_result)
 
