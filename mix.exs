@@ -33,10 +33,11 @@ defmodule Rag.MixProject do
       {:req, "~> 0.5.0"},
       {:nx, "~> 0.9.0"},
       {:telemetry, "~> 1.0"},
+      {:mimic, "~> 1.11", only: :test},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:igniter, "~> 0.5.7", runtime: false},
-      {:mimic, "~> 1.11", only: :test}
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
 
@@ -67,7 +68,8 @@ defmodule Rag.MixProject do
     [
       lint: [
         "format --check-formatted",
-        "credo --strict"
+        "credo --strict",
+        "dialyzer --format dialyxir"
       ]
     ]
   end
