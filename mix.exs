@@ -13,6 +13,10 @@ defmodule Rag.MixProject do
       deps: deps(),
       aliases: aliases(),
       preferred_cli_env: [lint: :test],
+      dialyzer: [
+        plt_add_apps: [:mix, :ex_unit, :jason, :igniter, :sourceror],
+        plt_core_path: "_plts"
+      ],
       package: package(),
       docs: docs(),
       description: "A library to make building performant RAG systems in Elixir easy",
@@ -33,10 +37,10 @@ defmodule Rag.MixProject do
       {:req, "~> 0.5.0"},
       {:nx, "~> 0.9.0"},
       {:telemetry, "~> 1.0"},
+      {:igniter, "~> 0.5.7", runtime: false},
       {:mimic, "~> 1.11", only: :test},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:igniter, "~> 0.5.7", runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
