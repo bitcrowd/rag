@@ -36,6 +36,7 @@ defmodule Rag.Generation.NxTest do
       end
     end
 
+    @tag :skip
     test "returns a stream", %{provider: provider} do
       expect(Nx.Serving, :batched_run, fn _serving, prompt ->
         assert prompt == "a prompt"

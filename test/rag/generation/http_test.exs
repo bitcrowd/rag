@@ -33,6 +33,17 @@ defmodule Rag.Generation.HttpTest do
         Generation.generate_response(%Generation{query: "test?", prompt: "prompt"}, provider)
     end
 
+    @tag :skip
+    test "openai generation with streaming" do
+      api_key = System.get_env("OPENAI_API_KEY")
+      provider = Ai.OpenAI.new(%{text_model: "gpt-4o-mini", api_key: api_key})
+
+      %Generation{query: "test?", response: _response} =
+        Generation.generate_response(%Generation{query: "test?", prompt: "prompt"}, provider,
+          stream: true
+        )
+    end
+
     @tag :integration_test
     test "cohere generation" do
       api_key = System.get_env("COHERE_API_KEY")
@@ -40,6 +51,16 @@ defmodule Rag.Generation.HttpTest do
 
       %Generation{query: "test?", response: _response} =
         Generation.generate_response(%Generation{query: "test?", prompt: "prompt"}, provider)
+    end
+
+    test "cohere generation with streaming" do
+      api_key = System.get_env("COHERE_API_KEY")
+      provider = Ai.Cohere.new(%{text_model: "command-r-plus-08-2024", api_key: api_key})
+
+      %Generation{query: "test?", response: _response} =
+        Generation.generate_response(%Generation{query: "test?", prompt: "prompt"}, provider,
+          stream: true
+        )
     end
   end
 end

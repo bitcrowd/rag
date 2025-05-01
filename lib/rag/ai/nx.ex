@@ -45,18 +45,6 @@ defmodule Rag.Ai.Nx do
           "provider.text_serving is nil but must point to valid text serving, for instance created with Bumblebee.Text.generation/4"
   end
 
-  # def generate_text(%__MODULE__{} = provider, prompt, _opts) when is_binary(prompt) do
-  #   try do
-  #     %{results: [result]} =
-  #       Nx.Serving.batched_run(provider.text_serving, prompt)
-
-  #     {:ok, result.text}
-  #   rescue
-  #     error ->
-  #       {:error, error}
-  #   end
-  # end
-
   def generate_text(%__MODULE__{} = provider, prompt, _opts) when is_binary(prompt) do
     case Nx.Serving.batched_run(provider.text_serving, prompt) do
       %{results: [result]} -> {:ok, result.text}
