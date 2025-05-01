@@ -82,8 +82,5 @@ defmodule Rag.Evaluation.NxTest do
                  provider
                )
     end
-
-    test "fails with 'Streaming' if the response is streaming" do
-    end
   end
 end

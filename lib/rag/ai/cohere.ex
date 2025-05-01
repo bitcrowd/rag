@@ -57,11 +57,17 @@ defmodule Rag.Ai.Cohere do
   end
 
   @impl Rag.Ai.Provider
-  def generate_text(%__MODULE__{} = provider, prompt, _opts \\ []) do
+  def generate_text(%__MODULE__{} = provider, prompt, opts \\ []) do
+    stream? = Keyword.get(opts, :stream, false)
+
     req_params =
       [
         auth: {:bearer, provider.api_key},
-        json: %{"model" => provider.text_model, "messages" => [%{role: :user, content: prompt}]}
+        json: %{
+          "model" => provider.text_model,
+          "messages" => [%{role: :user, content: prompt}],
+          "stream" => stream?
+        }
       ]
 
     with {:ok, %Req.Response{status: 200} = response} <- Req.post(provider.text_url, req_params),

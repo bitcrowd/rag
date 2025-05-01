@@ -45,19 +45,29 @@ defmodule Rag.Ai.Nx do
           "provider.text_serving is nil but must point to valid text serving, for instance created with Bumblebee.Text.generation/4"
   end
 
-  def generate_text(%__MODULE__{} = provider, prompt, _opts) when is_binary(prompt) do
-    try do
-      %{results: [result]} =
-        Nx.Serving.batched_run(provider.text_serving, prompt)
+  # def generate_text(%__MODULE__{} = provider, prompt, _opts) when is_binary(prompt) do
+  #   try do
+  #     %{results: [result]} =
+  #       Nx.Serving.batched_run(provider.text_serving, prompt)
 
-      {:ok, result.text}
-    rescue
-      error ->
-        {:error, error}
+  #     {:ok, result.text}
+  #   rescue
+  #     error ->
+  #       {:error, error}
+  #   end
+  # end
+
+  def generate_text(%__MODULE__{} = provider, prompt, _opts) when is_binary(prompt) do
+    case Nx.Serving.batched_run(provider.text_serving, prompt) do
+      %{results: [result]} -> {:ok, result.text}
+      stream -> {:ok, stream}
     end
+  rescue
+    error ->
+      {:error, error}
   end
 
-  def generate_text(provider, prompt, opts) do
-    raise "Streaming"
+  def generate_text(_provider, _prompt, [%{stream: true}]) do
+    raise "Streaming must be configured when creating the serving."
   end
 end
