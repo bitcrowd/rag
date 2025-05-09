@@ -58,9 +58,23 @@ defmodule Rag.Ai.Cohere do
 
   @impl Rag.Ai.Provider
   def generate_text(%__MODULE__{} = provider, prompt, opts \\ []) do
+    req_params = build_req_params(provider, prompt, opts)
+
+    with {:ok, %Req.Response{status: 200} = response} <- Req.post(provider.text_url, req_params) do
+      {:ok, get_text_or_stream(response)}
+    else
+      {:ok, %Req.Response{status: status}} ->
+        {:error, "HTTP request failed with status code #{status}"}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp build_req_params(provider, prompt, opts) do
     stream? = Keyword.get(opts, :stream, false)
 
-    req_params =
+    base_params =
       [
         auth: {:bearer, provider.api_key},
         json: %{
@@ -70,22 +84,34 @@ defmodule Rag.Ai.Cohere do
         }
       ]
 
-    with {:ok, %Req.Response{status: 200} = response} <- Req.post(provider.text_url, req_params),
-         {:access, response} <- {:access, get_text(response)} do
-      {:ok, response}
+    if stream? do
+      Keyword.put(base_params, :into, :self)
     else
-      {:ok, %Req.Response{status: status}} ->
-        {:error, "HTTP request failed with status code #{status}"}
-
-      {:error, reason} ->
-        {:error, reason}
-
-      {:access, reason} ->
-        {:error, reason}
+      base_params
     end
   end
 
-  defp get_text(response) do
+  defp get_text_or_stream(%{body: %Req.Response.Async{}} = response) do
+    Stream.flat_map(response.body, &sse_events_to_stream(&1))
+  end
+
+  defp get_text_or_stream(response) do
     get_in(response.body, ["message", "content", Access.at(0), "text"])
+  end
+
+  defp sse_events_to_stream(response_chunk) do
+    events = String.split(response_chunk, "}\n", trim: true) |> Enum.map(&(&1 <> "}"))
+
+    Enum.map(events, &get_event_text(&1))
+  end
+
+  defp get_event_text(event) do
+    case Jason.decode!(event) do
+      %{"type" => "content-delta"} = event ->
+        get_in(event, ["delta", "message", "content", "text"])
+
+      _other_event_type ->
+        ""
+    end
   end
 end

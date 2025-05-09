@@ -126,17 +126,15 @@ defmodule Rag.Generation do
   """
   @spec generate_response(Generation.t(), response_function() | provider(), keyword()) ::
           Generation.t()
+  def generate_response(generation, response_function_or_provider, opts \\ [])
+
   def generate_response(%Generation{halted?: true} = generation, _response_function, _opts),
     do: generation
 
   def generate_response(%Generation{prompt: nil}, _response_function, _opts),
     do: raise(ArgumentError, message: "prompt must not be nil")
 
-  def generate_response(
-        %Generation{} = generation,
-        %provider_module{} = provider,
-        opts \\ []
-      ) do
+  def generate_response(%Generation{} = generation, %provider_module{} = provider, opts) do
     generate_response(generation, &provider_module.generate_text(provider, &1, &2), opts)
   end
 
@@ -146,8 +144,11 @@ defmodule Rag.Generation do
     :telemetry.span([:rag, :generate_response], metadata, fn ->
       generation =
         case response_function.(generation.prompt, opts) do
-          {:ok, response} -> Generation.put_response(generation, response)
-          {:error, error} -> generation |> Generation.add_error(error) |> Generation.halt()
+          {:ok, response} ->
+            Generation.put_response(generation, response)
+
+          {:error, error} ->
+            generation |> Generation.add_error(error) |> Generation.halt()
         end
 
       {generation, %{metadata | generation: generation}}

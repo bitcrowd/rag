@@ -53,14 +53,17 @@ defmodule Rag.Generation.HttpTest do
         Generation.generate_response(%Generation{query: "test?", prompt: "prompt"}, provider)
     end
 
+    @tag :integration_test
     test "cohere generation with streaming" do
       api_key = System.get_env("COHERE_API_KEY")
       provider = Ai.Cohere.new(%{text_model: "command-r-plus-08-2024", api_key: api_key})
 
-      %Generation{query: "test?", response: _response} =
+      %Generation{query: "test?", response: response} =
         Generation.generate_response(%Generation{query: "test?", prompt: "prompt"}, provider,
           stream: true
         )
+
+      assert Enum.join(response) |> String.length() > 0
     end
   end
 end
