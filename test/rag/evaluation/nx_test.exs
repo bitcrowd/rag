@@ -51,10 +51,6 @@ defmodule Rag.Evaluation.NxTest do
                }
              } = Evaluation.evaluate_rag_triad(generation, provider)
     end
-
-    @tag :skip
-    test "fails with 'Streaming' if the response is streaming" do
-    end
   end
 
   describe "detect_hallucination/2" do

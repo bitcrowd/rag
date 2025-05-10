@@ -116,8 +116,8 @@ defmodule Rag.Evaluation do
     end)
   end
 
-  def evaluate_rag_triad(%Generation{} = generation, response_function) do
-    raise "Streaming"
+  def evaluate_rag_triad(%Generation{} = generation, _response_function) do
+    raise "Can't evaluate streamed response in generation #{inspect(generation)}"
   end
 
   @doc """
@@ -131,8 +131,8 @@ defmodule Rag.Evaluation do
     detect_hallucination(generation, &provider_module.generate_text(provider, &1, &2))
   end
 
-  def detect_hallucination(%Generation{} = generation, response_function)
-      when is_function(response_function, 2) do
+  def detect_hallucination(%Generation{response: response} = generation, response_function)
+      when is_binary(response) and is_function(response_function, 2) do
     %{query: query, response: response, context: context} = generation
 
     prompt =
@@ -168,7 +168,7 @@ defmodule Rag.Evaluation do
     end)
   end
 
-  def detect_hallucination(%Generation{} = generation, response_function) do
-    raise "Streaming"
+  def detect_hallucination(%Generation{} = generation, _response_function) do
+    raise "Can't evaluate streamed response in generation #{inspect(generation)}"
   end
 end
