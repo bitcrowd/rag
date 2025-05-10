@@ -36,11 +36,10 @@ defmodule Rag.Generation.NxTest do
       end
     end
 
-    @tag :skip
-    test "returns a stream", %{provider: provider} do
+    test "can also return a stream", %{provider: provider} do
       expect(Nx.Serving, :batched_run, fn _serving, prompt ->
         assert prompt == "a prompt"
-        Stream.take_while(["this", "is", "a", "stream"], & &1)
+        Stream.take_while(["this ", "is ", "a ", "stream"], & &1)
       end)
 
       query = "a query"
@@ -48,8 +47,19 @@ defmodule Rag.Generation.NxTest do
 
       generation = %Generation{query: query, prompt: prompt}
 
-      assert_raise RuntimeError, fn ->
-        Generation.generate_response(generation, provider, [%{stream: true}])
+      %{response: response} = Generation.generate_response(generation, provider)
+
+      assert Enum.join(response) == "this is a stream"
+    end
+
+    test "passing option stream: true raises", %{provider: provider} do
+      query = "a query"
+      prompt = "a prompt"
+
+      generation = %Generation{query: query, prompt: prompt}
+
+      assert_raise ArgumentError, fn ->
+        Generation.generate_response(generation, provider, stream: true)
       end
     end
   end
