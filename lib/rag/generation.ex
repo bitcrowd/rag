@@ -8,7 +8,8 @@ defmodule Rag.Generation do
   @type provider :: struct()
 
   @type response_function :: (String.t(), keyword() -> String.t())
-  @type context_builder_function :: (String.t(), keyword() -> String.t())
+  @type context_builder_function :: (Generation.t(), keyword() -> String.t())
+  @type context_sources_builder_function :: (Generation.t(), keyword() -> list(String.t()))
 
   @typedoc """
   Represents a generation, the main datastructure in `rag`.
@@ -166,5 +167,21 @@ defmodule Rag.Generation do
     context = context_builder_function.(generation, opts)
 
     Generation.put_context(generation, context)
+  end
+
+  @doc """
+  Passes `generation` and `opts` to `context_sources_builder_function` to determine the context sources.
+  Then, puts the context sources in `generation.context_sources`.
+  """
+  @spec build_context_sources(t(), context_sources_builder_function(), keyword()) :: t()
+  def build_context_sources(
+        %Generation{} = generation,
+        context_sources_builder_function,
+        opts \\ []
+      )
+      when is_function(context_sources_builder_function, 2) do
+    context_sources = context_sources_builder_function.(generation, opts)
+
+    Generation.put_context_sources(generation, context_sources)
   end
 end

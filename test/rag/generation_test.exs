@@ -79,4 +79,15 @@ defmodule Rag.GenerationTest do
                Generation.build_context(generation, builder_fn, [])
     end
   end
+
+  describe "build_context_sources/3" do
+    test "build context sources according to builder function" do
+      generation = %Generation{query: "query", prompt: "a prompt"}
+
+      builder_fn = fn _generation, _opts -> ["source1", "source2"] end
+
+      assert %{context_sources: ["source1", "source2"]} =
+               Generation.build_context_sources(generation, builder_fn, [])
+    end
+  end
 end
