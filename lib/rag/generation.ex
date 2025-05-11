@@ -10,6 +10,7 @@ defmodule Rag.Generation do
   @type response_function :: (String.t(), keyword() -> String.t())
   @type context_builder_function :: (Generation.t(), keyword() -> String.t())
   @type context_sources_builder_function :: (Generation.t(), keyword() -> list(String.t()))
+  @type prompt_builder_function :: (Generation.t(), keyword() -> String.t())
 
   @typedoc """
   Represents a generation, the main datastructure in `rag`.
@@ -183,5 +184,17 @@ defmodule Rag.Generation do
     context_sources = context_sources_builder_function.(generation, opts)
 
     Generation.put_context_sources(generation, context_sources)
+  end
+
+  @doc """
+  Passes `generation` and `opts` to `prompt_builder_function` to determine the prompt.
+  Then, puts the prompt in `generation.prompt`.
+  """
+  @spec build_prompt(t(), prompt_builder_function(), keyword()) :: t()
+  def build_prompt(%Generation{} = generation, prompt_builder_function, opts \\ [])
+      when is_function(prompt_builder_function, 2) do
+    prompt = prompt_builder_function.(generation, opts)
+
+    Generation.put_prompt(generation, prompt)
   end
 end
