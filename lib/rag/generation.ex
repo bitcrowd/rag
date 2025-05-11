@@ -5,8 +5,10 @@ defmodule Rag.Generation do
   alias Rag.Generation
 
   @type embedding :: list(number())
-  @type response_function :: (String.t(), keyword() -> String.t())
   @type provider :: struct()
+
+  @type response_function :: (String.t(), keyword() -> String.t())
+  @type context_builder_function :: (String.t(), keyword() -> String.t())
 
   @typedoc """
   Represents a generation, the main datastructure in `rag`.
@@ -152,5 +154,17 @@ defmodule Rag.Generation do
 
       {generation, %{metadata | generation: generation}}
     end)
+  end
+
+  @doc """
+  Passes `generation` and `opts` to `context_builder_function` to determine the context.
+  Then, puts the context in `generation.context`.
+  """
+  @spec build_context(t(), context_builder_function(), keyword()) :: t()
+  def build_context(%Generation{} = generation, context_builder_function, opts \\ [])
+      when is_function(context_builder_function, 2) do
+    context = context_builder_function.(generation, opts)
+
+    Generation.put_context(generation, context)
   end
 end

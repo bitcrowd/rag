@@ -68,4 +68,15 @@ defmodule Rag.GenerationTest do
                Generation.generate_response(generation, error_fn)
     end
   end
+
+  describe "build_context/3" do
+    test "builds context according to builder function" do
+      generation = %Generation{query: "query", prompt: "a prompt"}
+
+      builder_fn = fn _generation, _opts -> "this is the context" end
+
+      assert %{context: "this is the context"} =
+               Generation.build_context(generation, builder_fn, [])
+    end
+  end
 end
