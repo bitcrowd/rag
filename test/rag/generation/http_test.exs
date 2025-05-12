@@ -83,5 +83,17 @@ defmodule Rag.Generation.HttpTest do
                  provider
                )
     end
+
+    @tag :integration_test
+    test "ollama generation with streaming" do
+      provider = Ai.Ollama.new(%{text_model: "llama3.2:latest"})
+
+      %Generation{query: "test?", response: response} =
+        Generation.generate_response(%Generation{query: "test?", prompt: "prompt"}, provider,
+          stream: true
+        )
+
+      assert Enum.join(response) |> String.length() > 0
+    end
   end
 end
