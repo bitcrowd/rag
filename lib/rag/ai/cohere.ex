@@ -38,7 +38,7 @@ defmodule Rag.Ai.Cohere do
 
     with {:ok, %Req.Response{status: 200} = response} <-
            Req.post(provider.embeddings_url, req_params),
-         {:access, embeddings} <- {:access, get_embeddings(response)} do
+         {:ok, embeddings} <- get_embeddings(response) do
       {:ok, embeddings}
     else
       {:ok, %Req.Response{status: status}} ->
@@ -46,14 +46,20 @@ defmodule Rag.Ai.Cohere do
 
       {:error, reason} ->
         {:error, reason}
-
-      {:access, reason} ->
-        {:error, reason}
     end
   end
 
   defp get_embeddings(response) do
-    get_in(response.body, ["embeddings", "float"])
+    path = ["embeddings", "float"]
+
+    case get_in(response.body, path) do
+      nil ->
+        {:error,
+         "failed to access embedings from path embeddings.float in response #{response.body}"}
+
+      embeddings ->
+        {:ok, embeddings}
+    end
   end
 
   @impl Rag.Ai.Provider
@@ -65,21 +71,27 @@ defmodule Rag.Ai.Cohere do
       ]
 
     with {:ok, %Req.Response{status: 200} = response} <- Req.post(provider.text_url, req_params),
-         {:access, response} <- {:access, get_text(response)} do
-      {:ok, response}
+         {:ok, text} <- get_text(response) do
+      {:ok, text}
     else
       {:ok, %Req.Response{status: status}} ->
         {:error, "HTTP request failed with status code #{status}"}
 
       {:error, reason} ->
         {:error, reason}
-
-      {:access, reason} ->
-        {:error, reason}
     end
   end
 
   defp get_text(response) do
-    get_in(response.body, ["message", "content", Access.at(0), "text"])
+    path = ["message", "content", Access.at(0), "text"]
+
+    case get_in(response.body, path) do
+      nil ->
+        {:error,
+         "failed to access text from path message.content.0.text in response #{response.body}"}
+
+      text ->
+        {:ok, text}
+    end
   end
 end
