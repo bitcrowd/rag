@@ -28,7 +28,7 @@ defmodule Rag.GenerationTest do
       generation = %Generation{query: "query", prompt: "a prompt", halted?: true}
       response_fn = fn "a prompt", _opts -> {:ok, "a response"} end
 
-      assert generation == Generation.generate_response(generation, response_fn, false)
+      assert generation == Generation.generate_response(generation, response_fn)
     end
 
     test "emits start, stop, and exception telemetry events" do
