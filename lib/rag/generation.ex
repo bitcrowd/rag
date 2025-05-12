@@ -8,7 +8,7 @@ defmodule Rag.Generation do
   @type provider :: struct()
   @type response :: String.t() | Enumerable.t()
 
-  @type response_function :: (String.t(), keyword() -> String.t())
+  @type response_function :: (String.t(), keyword() -> response())
   @type context_builder_function :: (Generation.t(), keyword() -> String.t())
   @type context_sources_builder_function :: (Generation.t(), keyword() -> list(String.t()))
   @type prompt_builder_function :: (Generation.t(), keyword() -> String.t())
@@ -99,7 +99,7 @@ defmodule Rag.Generation do
   @doc """
   Puts `response` in `generation.response`.
   """
-  @spec put_response(t(), response :: String.t() | Enumerable.t()) :: t()
+  @spec put_response(t(), response :: response()) :: t()
   def put_response(%Generation{} = generation, response),
     do: %{generation | response: response}
 
