@@ -40,5 +40,16 @@ defmodule Rag.Generation.HttpTest do
       %Generation{query: "test?", response: _response} =
         Generation.generate_response(%Generation{query: "test?", prompt: "prompt"}, provider)
     end
+
+    @tag :integration_test
+    test "ollama generation" do
+      provider = Ai.Ollama.new(%{text_model: "llama3.2:latest"})
+
+      assert %Generation{query: "test?", response: _response} =
+               Generation.generate_response(
+                 %Generation{query: "test?", prompt: "prompt"},
+                 provider
+               )
+    end
   end
 end
