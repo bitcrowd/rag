@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v0.2.3
+* Add `Rag.Ai.Ollama` as ollama provider
+* Add `build_context/3`, `build_context_sources/3`, `build_prompt/3` to enable full pipeline interface
+* Enable streaming of responses (@W3NDO, thank you for your contribution!)
+
 ## v0.2.2
 * Add `ref` to `Generation` for referencing in telemetry handler
 
