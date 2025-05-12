@@ -208,5 +208,13 @@ defmodule Rag.Embedding.HttpTest do
       [%{text: "hello", embedding: _embedding}] =
         Embedding.generate_embeddings_batch([%{text: "hello"}], provider, [])
     end
+
+    @tag :integration_test
+    test "ollama embeddings" do
+      provider = Ai.Ollama.new(%{embeddings_model: "unclemusclez/jina-embeddings-v2-base-code"})
+
+      assert [%{text: "hello", embedding: _embedding}] =
+               Embedding.generate_embeddings_batch([%{text: "hello"}], provider, [])
+    end
   end
 end
