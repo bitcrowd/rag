@@ -2,15 +2,21 @@ defmodule Rag.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/bitcrowd/rag"
-  @version "0.2.1"
+  @version "0.2.2"
 
   def project do
     [
       app: :rag,
       version: @version,
-      elixir: "~> 1.17",
+      elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      aliases: aliases(),
+      preferred_cli_env: [lint: :test],
+      dialyzer: [
+        plt_add_apps: [:mix, :ex_unit, :jason, :igniter, :sourceror],
+        plt_core_path: "_plts"
+      ],
       package: package(),
       docs: docs(),
       description: "A library to make building performant RAG systems in Elixir easy",
@@ -31,10 +37,11 @@ defmodule Rag.MixProject do
       {:req, "~> 0.5.0"},
       {:nx, "~> 0.9.0"},
       {:telemetry, "~> 1.0"},
+      {:igniter, "~> 0.5.7", runtime: false},
+      {:mimic, "~> 1.11", only: :test},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:igniter, "~> 0.5.7", runtime: false},
-      {:mimic, "~> 1.11", only: :test}
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
 
@@ -57,6 +64,16 @@ defmodule Rag.MixProject do
         {"README.md", title: "README"},
         "CHANGELOG.md",
         "notebooks/getting_started.livemd"
+      ]
+    ]
+  end
+
+  defp aliases do
+    [
+      lint: [
+        "format --check-formatted",
+        "credo --strict",
+        "dialyzer --format dialyxir"
       ]
     ]
   end

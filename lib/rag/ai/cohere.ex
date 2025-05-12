@@ -38,7 +38,7 @@ defmodule Rag.Ai.Cohere do
 
     with {:ok, %Req.Response{status: 200} = response} <-
            Req.post(provider.embeddings_url, req_params),
-         {:access, embeddings} <- {:access, get_embeddings(response)} do
+         {:ok, embeddings} <- get_embeddings(response) do
       {:ok, embeddings}
     else
       {:ok, %Req.Response{status: status}} ->
@@ -46,22 +46,29 @@ defmodule Rag.Ai.Cohere do
 
       {:error, reason} ->
         {:error, reason}
-
-      {:access, reason} ->
-        {:error, reason}
     end
   end
 
   defp get_embeddings(response) do
-    get_in(response.body, ["embeddings", "float"])
+    path = ["embeddings", "float"]
+
+    case get_in(response.body, path) do
+      nil ->
+        {:error,
+         "failed to access embedings from path embeddings.float in response #{response.body}"}
+
+      embeddings ->
+        {:ok, embeddings}
+    end
   end
 
   @impl Rag.Ai.Provider
   def generate_text(%__MODULE__{} = provider, prompt, opts \\ []) do
     req_params = build_req_params(provider, prompt, opts)
 
-    with {:ok, %Req.Response{status: 200} = response} <- Req.post(provider.text_url, req_params) do
-      {:ok, get_text_or_stream(response)}
+    with {:ok, %Req.Response{status: 200} = response} <- Req.post(provider.text_url, req_params),
+         {:ok, text_or_stream} <- get_text_or_stream(response) do
+      {:ok, text_or_stream}
     else
       {:ok, %Req.Response{status: status}} ->
         {:error, "HTTP request failed with status code #{status}"}
@@ -92,11 +99,22 @@ defmodule Rag.Ai.Cohere do
   end
 
   defp get_text_or_stream(%{body: %Req.Response.Async{}} = response) do
-    Stream.flat_map(response.body, &sse_events_to_stream(&1))
+    {:ok, Stream.flat_map(response.body, &sse_events_to_stream(&1))}
   end
 
-  defp get_text_or_stream(response) do
-    get_in(response.body, ["message", "content", Access.at(0), "text"])
+  defp get_text_or_stream(response), do: get_text(response)
+
+  defp get_text(response) do
+    path = ["message", "content", Access.at(0), "text"]
+
+    case get_in(response.body, path) do
+      nil ->
+        {:error,
+         "failed to access text from path message.content.0.text in response #{response.body}"}
+
+      text ->
+        {:ok, text}
+    end
   end
 
   defp sse_events_to_stream(response_chunk) do

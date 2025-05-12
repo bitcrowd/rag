@@ -2,8 +2,7 @@ defmodule Rag.Generation.HttpTest do
   use ExUnit.Case
   use Mimic
 
-  alias Rag.Generation
-  alias Rag.Ai
+  alias Rag.{Ai, Generation}
 
   setup do
     %{provider: Ai.OpenAI.new(%{})}
@@ -72,6 +71,17 @@ defmodule Rag.Generation.HttpTest do
         )
 
       assert Enum.join(response) |> String.length() > 0
+    end
+
+    @tag :integration_test
+    test "ollama generation" do
+      provider = Ai.Ollama.new(%{text_model: "llama3.2:latest"})
+
+      assert %Generation{query: "test?", response: _response} =
+               Generation.generate_response(
+                 %Generation{query: "test?", prompt: "prompt"},
+                 provider
+               )
     end
   end
 end

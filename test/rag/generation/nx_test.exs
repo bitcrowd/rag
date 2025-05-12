@@ -2,8 +2,7 @@ defmodule Rag.Generation.NxTest do
   use ExUnit.Case
   use Mimic
 
-  alias Rag.Generation
-  alias Rag.Ai
+  alias Rag.{Ai, Generation}
 
   setup do
     %{provider: Ai.Nx.new(%{text_serving: TestTextServing})}

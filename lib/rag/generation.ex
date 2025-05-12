@@ -5,9 +5,13 @@ defmodule Rag.Generation do
   alias Rag.Generation
 
   @type embedding :: list(number())
-  @type response_function :: (String.t(), keyword() -> String.t())
   @type provider :: struct()
   @type response :: String.t() | Enumerable.t()
+
+  @type response_function :: (String.t(), keyword() -> String.t())
+  @type context_builder_function :: (Generation.t(), keyword() -> String.t())
+  @type context_sources_builder_function :: (Generation.t(), keyword() -> list(String.t()))
+  @type prompt_builder_function :: (Generation.t(), keyword() -> String.t())
 
   @typedoc """
   Represents a generation, the main datastructure in `rag`.
@@ -22,7 +26,8 @@ defmodule Rag.Generation do
           response: response() | nil,
           evaluations: %{optional(atom()) => any()},
           halted?: boolean(),
-          errors: list(any())
+          errors: list(any()),
+          ref: any()
         }
 
   @enforce_keys [:query]
@@ -35,13 +40,18 @@ defmodule Rag.Generation do
             response: nil,
             evaluations: %{},
             halted?: false,
-            errors: []
+            errors: [],
+            ref: nil
 
   @doc """
   Creates a new generation struct from a query.
   """
   @spec new(String.t()) :: t()
-  def new(query) when is_binary(query), do: %Generation{query: query}
+  @spec new(String.t(), opts :: keyword()) :: t()
+  def new(query, opts \\ []) when is_binary(query) do
+    ref = Keyword.get(opts, :ref)
+    %Generation{query: query, ref: ref}
+  end
 
   @doc """
   Puts `query_embedding` in `generation.query_embedding`.
@@ -53,7 +63,7 @@ defmodule Rag.Generation do
   @doc """
   Puts `retrieval_result` at `key` in `generation.retrieval_results`.
   """
-  @spec put_retrieval_result(t(), key :: atom(), retrieval_result :: map()) :: t()
+  @spec put_retrieval_result(t(), key :: atom(), retrieval_result :: any()) :: t()
   def put_retrieval_result(%Generation{} = generation, key, retrieval_result),
     do: put_in(generation, [Access.key!(:retrieval_results), key], retrieval_result)
 
@@ -153,5 +163,45 @@ defmodule Rag.Generation do
 
       {generation, %{metadata | generation: generation}}
     end)
+  end
+
+  @doc """
+  Passes `generation` and `opts` to `context_builder_function` to determine the context.
+  Then, puts the context in `generation.context`.
+  """
+  @spec build_context(t(), context_builder_function(), keyword()) :: t()
+  def build_context(%Generation{} = generation, context_builder_function, opts \\ [])
+      when is_function(context_builder_function, 2) do
+    context = context_builder_function.(generation, opts)
+
+    Generation.put_context(generation, context)
+  end
+
+  @doc """
+  Passes `generation` and `opts` to `context_sources_builder_function` to determine the context sources.
+  Then, puts the context sources in `generation.context_sources`.
+  """
+  @spec build_context_sources(t(), context_sources_builder_function(), keyword()) :: t()
+  def build_context_sources(
+        %Generation{} = generation,
+        context_sources_builder_function,
+        opts \\ []
+      )
+      when is_function(context_sources_builder_function, 2) do
+    context_sources = context_sources_builder_function.(generation, opts)
+
+    Generation.put_context_sources(generation, context_sources)
+  end
+
+  @doc """
+  Passes `generation` and `opts` to `prompt_builder_function` to determine the prompt.
+  Then, puts the prompt in `generation.prompt`.
+  """
+  @spec build_prompt(t(), prompt_builder_function(), keyword()) :: t()
+  def build_prompt(%Generation{} = generation, prompt_builder_function, opts \\ [])
+      when is_function(prompt_builder_function, 2) do
+    prompt = prompt_builder_function.(generation, opts)
+
+    Generation.put_prompt(generation, prompt)
   end
 end

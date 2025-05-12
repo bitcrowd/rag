@@ -1,8 +1,7 @@
 defmodule Rag.EvaluationTest do
   use ExUnit.Case
 
-  alias Rag.Generation
-  alias Rag.Evaluation
+  alias Rag.{Ai, Evaluation, Generation}
 
   describe "evaluate_rag_triad/2" do
     test "takes a query, context, and response and returns an evaluation with scores and reasoning" do
@@ -250,7 +249,7 @@ defmodule Rag.EvaluationTest do
     @tag :integration_test
     test "openai evaluation" do
       api_key = System.get_env("OPENAI_API_KEY")
-      provider = Rag.Ai.OpenAI.new(text_model: "gpt-4o-mini", api_key: api_key)
+      provider = Ai.OpenAI.new(text_model: "gpt-4o-mini", api_key: api_key)
 
       query = "When was Elixir 1.18.1 released?"
       context = "Elixir 1.18.1 was released on 2024-12-24"
@@ -265,7 +264,7 @@ defmodule Rag.EvaluationTest do
     @tag :integration_test
     test "cohere evaluation" do
       api_key = System.get_env("COHERE_API_KEY")
-      provider = Rag.Ai.Cohere.new(text_model: "command-r-plus-08-2024", api_key: api_key)
+      provider = Ai.Cohere.new(text_model: "command-r-plus-08-2024", api_key: api_key)
 
       query = "When was Elixir 1.18.1 released?"
       context = "Elixir 1.18.1 was released on 2024-12-24"
