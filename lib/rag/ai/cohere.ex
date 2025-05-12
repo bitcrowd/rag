@@ -63,16 +63,12 @@ defmodule Rag.Ai.Cohere do
   end
 
   @impl Rag.Ai.Provider
-  def generate_text(%__MODULE__{} = provider, prompt, _opts \\ []) do
-    req_params =
-      [
-        auth: {:bearer, provider.api_key},
-        json: %{"model" => provider.text_model, "messages" => [%{role: :user, content: prompt}]}
-      ]
+  def generate_text(%__MODULE__{} = provider, prompt, opts \\ []) do
+    req_params = build_req_params(provider, prompt, opts)
 
     with {:ok, %Req.Response{status: 200} = response} <- Req.post(provider.text_url, req_params),
-         {:ok, text} <- get_text(response) do
-      {:ok, text}
+         {:ok, text_or_stream} <- get_text_or_stream(response) do
+      {:ok, text_or_stream}
     else
       {:ok, %Req.Response{status: status}} ->
         {:error, "HTTP request failed with status code #{status}"}
@@ -81,6 +77,32 @@ defmodule Rag.Ai.Cohere do
         {:error, reason}
     end
   end
+
+  defp build_req_params(provider, prompt, opts) do
+    stream? = Keyword.get(opts, :stream, false)
+
+    base_params =
+      [
+        auth: {:bearer, provider.api_key},
+        json: %{
+          "model" => provider.text_model,
+          "messages" => [%{role: :user, content: prompt}],
+          "stream" => stream?
+        }
+      ]
+
+    if stream? do
+      Keyword.put(base_params, :into, :self)
+    else
+      base_params
+    end
+  end
+
+  defp get_text_or_stream(%{body: %Req.Response.Async{}} = response) do
+    {:ok, Stream.flat_map(response.body, &sse_events_to_stream(&1))}
+  end
+
+  defp get_text_or_stream(response), do: get_text(response)
 
   defp get_text(response) do
     path = ["message", "content", Access.at(0), "text"]
@@ -92,6 +114,22 @@ defmodule Rag.Ai.Cohere do
 
       text ->
         {:ok, text}
+    end
+  end
+
+  defp sse_events_to_stream(response_chunk) do
+    events = String.split(response_chunk, "}\n", trim: true) |> Enum.map(&(&1 <> "}"))
+
+    Enum.map(events, &get_event_text(&1))
+  end
+
+  defp get_event_text(event) do
+    case Jason.decode!(event) do
+      %{"type" => "content-delta"} = event ->
+        get_in(event, ["delta", "message", "content", "text"])
+
+      _other_event_type ->
+        ""
     end
   end
 end

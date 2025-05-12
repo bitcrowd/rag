@@ -6,8 +6,9 @@ defmodule Rag.Generation do
 
   @type embedding :: list(number())
   @type provider :: struct()
+  @type response :: String.t() | Enumerable.t()
 
-  @type response_function :: (String.t(), keyword() -> String.t())
+  @type response_function :: (String.t(), keyword() -> response())
   @type context_builder_function :: (Generation.t(), keyword() -> String.t())
   @type context_sources_builder_function :: (Generation.t(), keyword() -> list(String.t()))
   @type prompt_builder_function :: (Generation.t(), keyword() -> String.t())
@@ -22,7 +23,7 @@ defmodule Rag.Generation do
           context: String.t() | nil,
           context_sources: list(String.t()),
           prompt: String.t() | nil,
-          response: String.t() | nil,
+          response: response() | nil,
           evaluations: %{optional(atom()) => any()},
           halted?: boolean(),
           errors: list(any()),
@@ -98,8 +99,8 @@ defmodule Rag.Generation do
   @doc """
   Puts `response` in `generation.response`.
   """
-  @spec put_response(t(), response :: String.t()) :: t()
-  def put_response(%Generation{} = generation, response) when is_binary(response),
+  @spec put_response(t(), response :: response()) :: t()
+  def put_response(%Generation{} = generation, response),
     do: %{generation | response: response}
 
   @doc """
@@ -133,25 +134,31 @@ defmodule Rag.Generation do
   Passes `generation.prompt` to `response_function` or `provider` to generate a response.
   If successful, puts the result in `generation.response`.
   """
-  @spec generate_response(Generation.t(), response_function() | provider()) :: Generation.t()
-  def generate_response(%Generation{halted?: true} = generation, _response_function),
+  @spec generate_response(Generation.t(), response_function() | provider(), keyword()) ::
+          Generation.t()
+  def generate_response(generation, response_function_or_provider, opts \\ [])
+
+  def generate_response(%Generation{halted?: true} = generation, _response_function, _opts),
     do: generation
 
-  def generate_response(%Generation{prompt: nil}, _response_function),
+  def generate_response(%Generation{prompt: nil}, _response_function, _opts),
     do: raise(ArgumentError, message: "prompt must not be nil")
 
-  def generate_response(%Generation{} = generation, %provider_module{} = provider) do
-    generate_response(generation, &provider_module.generate_text(provider, &1, &2))
+  def generate_response(%Generation{} = generation, %provider_module{} = provider, opts) do
+    generate_response(generation, &provider_module.generate_text(provider, &1, &2), opts)
   end
 
-  def generate_response(%Generation{} = generation, response_function) do
+  def generate_response(%Generation{} = generation, response_function, opts) do
     metadata = %{generation: generation}
 
     :telemetry.span([:rag, :generate_response], metadata, fn ->
       generation =
-        case response_function.(generation.prompt, []) do
-          {:ok, response} -> Generation.put_response(generation, response)
-          {:error, error} -> generation |> Generation.add_error(error) |> Generation.halt()
+        case response_function.(generation.prompt, opts) do
+          {:ok, response} ->
+            Generation.put_response(generation, response)
+
+          {:error, error} ->
+            generation |> Generation.add_error(error) |> Generation.halt()
         end
 
       {generation, %{metadata | generation: generation}}

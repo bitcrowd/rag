@@ -55,19 +55,12 @@ defmodule Rag.Ai.Ollama do
   end
 
   @impl Rag.Ai.Provider
-  def generate_text(%__MODULE__{} = provider, prompt, _opts \\ []) do
-    req_params =
-      [
-        json: %{
-          "model" => provider.text_model,
-          "messages" => [%{role: :user, content: prompt}],
-          "stream" => false
-        }
-      ]
+  def generate_text(%__MODULE__{} = provider, prompt, opts \\ []) do
+    req_params = build_req_params(provider, prompt, opts)
 
     with {:ok, %Req.Response{status: 200} = response} <- Req.post(provider.text_url, req_params),
-         {:ok, text} <- get_text(response) do
-      {:ok, text}
+         {:ok, text_or_stream} <- get_text_or_stream(response) do
+      {:ok, text_or_stream}
     else
       {:ok, %Req.Response{status: status}} ->
         {:error, "HTTP request failed with status code #{status}"}
@@ -76,6 +69,31 @@ defmodule Rag.Ai.Ollama do
         {:error, reason}
     end
   end
+
+  defp build_req_params(provider, prompt, opts) do
+    stream? = Keyword.get(opts, :stream, false)
+
+    base_params =
+      [
+        json: %{
+          "model" => provider.text_model,
+          "messages" => [%{role: :user, content: prompt}],
+          "stream" => stream?
+        }
+      ]
+
+    if stream? do
+      Keyword.put(base_params, :into, :self)
+    else
+      base_params
+    end
+  end
+
+  defp get_text_or_stream(%{body: %Req.Response.Async{}} = response) do
+    {:ok, Stream.map(response.body, &get_event_text(&1))}
+  end
+
+  defp get_text_or_stream(response), do: get_text(response)
 
   defp get_text(response) do
     path = ["message", "content"]
@@ -87,5 +105,11 @@ defmodule Rag.Ai.Ollama do
       text ->
         {:ok, text}
     end
+  end
+
+  defp get_event_text(event) do
+    event
+    |> Jason.decode!()
+    |> get_in(["message", "content"])
   end
 end
